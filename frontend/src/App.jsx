@@ -1,11 +1,33 @@
 import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import Navbar from './components/Navbar';
+import Home from './pages/Home';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import CreateListing from './pages/CreateListing';
+import ListingDetails from './pages/ListingDetails';
+import EditListing from './pages/EditListing';
+import MyListings from './pages/MyListings';
 
 function App() {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
-      <h1 className="text-4xl font-bold text-blue-600 mb-4">Campus Marketplace</h1>
-      <p className="text-lg text-gray-700">We are currently building the frontend. Stay tuned!</p>
-    </div>
+    <AuthProvider>
+      <Router>
+        <div className="min-h-screen bg-gray-50 text-gray-900">
+          <Navbar />
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/create" element={<CreateListing />} />
+            <Route path="/my-listings" element={<MyListings />} />
+            <Route path="/listing/:id" element={<ListingDetails />} />
+            <Route path="/listing/:id/edit" element={<EditListing />} />
+          </Routes>
+        </div>
+      </Router>
+    </AuthProvider>
   );
 }
 
