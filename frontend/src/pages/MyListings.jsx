@@ -31,9 +31,9 @@ const MyListings = () => {
   }, [user, navigate]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 transition-colors duration-200">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">My Listings</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Listings</h1>
         <Link to="/create" className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 transition-colors">
           Create New Listing
         </Link>
@@ -41,7 +41,7 @@ const MyListings = () => {
       
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {listings.map((listing) => (
-          <div key={listing._id} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 flex flex-col">
+          <div key={listing._id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden border border-gray-200 dark:border-gray-700 flex flex-col transition-colors duration-200">
             <img 
               src={listing.images[0] ? `http://localhost:5000${listing.images[0]}` : 'https://via.placeholder.com/300x200?text=No+Image'} 
               alt={listing.title} 
@@ -50,19 +50,19 @@ const MyListings = () => {
             <div className="p-4 flex-grow flex flex-col justify-between">
               <div>
                 <div className="flex justify-between items-start">
-                  <h3 className="text-lg font-semibold text-gray-900 truncate pr-2">{listing.title}</h3>
-                  <span className={`text-xs font-medium px-2.5 py-0.5 rounded ${listing.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate pr-2">{listing.title}</h3>
+                  <span className={`text-xs font-medium px-2.5 py-0.5 rounded border ${listing.status === 'Available' ? 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800/50' : 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800/50'}`}>
                     {listing.status}
                   </span>
                 </div>
-                <p className="mt-1 text-xl font-bold text-gray-900">${listing.price}</p>
-                <p className="mt-2 text-sm text-gray-500 line-clamp-2">{listing.description}</p>
+                <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white">${listing.price}</p>
+                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">{listing.description}</p>
               </div>
-              <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between">
-                <Link to={`/listing/${listing._id}`} className="text-blue-600 hover:text-blue-800 font-medium text-sm">
+              <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-between transition-colors duration-200">
+                <Link to={`/listing/${listing._id}`} className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium text-sm transition-colors">
                   View
                 </Link>
-                <Link to={`/listing/${listing._id}/edit`} className="text-gray-600 hover:text-gray-800 font-medium text-sm">
+                <Link to={`/listing/${listing._id}/edit`} className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium text-sm transition-colors">
                   Edit
                 </Link>
               </div>
@@ -70,9 +70,9 @@ const MyListings = () => {
           </div>
         ))}
         {listings.length === 0 && (
-          <div className="col-span-full text-center py-12 text-gray-500 bg-white rounded-lg shadow-sm border border-gray-100">
+          <div className="col-span-full text-center py-12 text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200">
             <p className="text-lg mb-4">You haven't created any listings yet.</p>
-            <Link to="/create" className="text-blue-600 hover:underline font-medium">Create your first listing</Link>
+            <Link to="/create" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">Create your first listing</Link>
           </div>
         )}
       </div>

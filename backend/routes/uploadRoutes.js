@@ -32,8 +32,9 @@ const upload = multer({
   },
 });
 
-router.post('/', upload.single('image'), (req, res) => {
-  res.send(`/${req.file.path.replace(/\\/g, '/')}`);
+router.post('/', upload.array('images', 5), (req, res) => {
+  const filePaths = req.files.map(file => `/${file.path.replace(/\\/g, '/')}`);
+  res.send(filePaths);
 });
 
 export default router;

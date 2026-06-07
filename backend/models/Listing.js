@@ -32,8 +32,8 @@ const listingSchema = new mongoose.Schema({
   }],
   status: {
     type: String,
-    enum: ['active', 'sold'],
-    default: 'active',
+    enum: ['Available', 'Sold'],
+    default: 'Available',
   },
 }, {
   timestamps: true,

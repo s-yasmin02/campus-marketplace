@@ -7,13 +7,13 @@ import {
   updateListing,
   deleteListing,
 } from '../controllers/listingController.js';
-import { protect } from '../middleware/authMiddleware.js';
+import { protect, isStudent } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 router.route('/')
   .get(getListings)
-  .post(protect, createListing);
+  .post(protect, isStudent, createListing);
 
 router.route('/my-listings')
   .get(protect, getMyListings);

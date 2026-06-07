@@ -5,7 +5,20 @@ import Listing from '../models/Listing.js';
 // @access  Public
 export const getListings = async (req, res) => {
   try {
-    const listings = await Listing.find({ status: 'active' }).populate('seller', 'name email');
+    const keyword = req.query.keyword
+      ? { title: { $regex: req.query.keyword, $options: 'i' } }
+      : {};
+
+    const category = req.query.category && req.query.category !== 'All'
+      ? { category: req.query.category }
+      : {};
+
+    const listings = await Listing.find({ 
+      ...keyword,
+      ...category,
+      status: 'Available' 
+    }).populate('seller', 'name email rating numReviews');
+    
     res.json(listings);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -17,7 +30,7 @@ export const getListings = async (req, res) => {
 // @access  Private
 export const getMyListings = async (req, res) => {
   try {
-    const listings = await Listing.find({ seller: req.user._id }).populate('seller', 'name email');
+    const listings = await Listing.find({ seller: req.user._id }).populate('seller', 'name email rating numReviews');
     res.json(listings);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -29,7 +42,7 @@ export const getMyListings = async (req, res) => {
 // @access  Public
 export const getListingById = async (req, res) => {
   try {
-    const listing = await Listing.findById(req.params.id).populate('seller', 'name email');
+    const listing = await Listing.findById(req.params.id).populate('seller', 'name email rating numReviews');
     
     if (listing) {
       res.json(listing);
@@ -75,9 +88,9 @@ export const updateListing = async (req, res) => {
     const listing = await Listing.findById(req.params.id);
 
     if (listing) {
-      // Check if user is seller or admin
-      if (listing.seller.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-        return res.status(401).json({ message: 'User not authorized to update this listing' });
+      // Check if user is seller (only owner student can update)
+      if (listing.seller.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: 'User not authorized to update this listing' });
       }
 
       listing.title = title || listing.title;

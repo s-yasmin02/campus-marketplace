@@ -9,8 +9,8 @@ const EditListing = () => {
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [condition, setCondition] = useState('');
-  const [image, setImage] = useState('');
-  const [status, setStatus] = useState('active');
+  const [images, setImages] = useState([]);
+  const [status, setStatus] = useState('Available');
   const [uploading, setUploading] = useState(false);
 
   const { id } = useParams();
@@ -26,7 +26,7 @@ const EditListing = () => {
         setDescription(data.description);
         setCategory(data.category);
         setCondition(data.condition);
-        setImage(data.images[0] || '');
+        setImages(data.images || []);
         setStatus(data.status);
       } catch (error) {
         console.error(error);
@@ -36,9 +36,14 @@ const EditListing = () => {
   }, [id]);
 
   const uploadFileHandler = async (e) => {
-    const file = e.target.files[0];
+    const files = Array.from(e.target.files);
+    if (files.length + images.length > 5) {
+      alert('You can only upload up to 5 images.');
+      return;
+    }
+
     const formData = new FormData();
-    formData.append('image', file);
+    files.forEach(file => formData.append('images', file));
     setUploading(true);
 
     try {
@@ -46,12 +51,17 @@ const EditListing = () => {
         headers: { 'Content-Type': 'multipart/form-data' },
       };
       const { data } = await axios.post('http://localhost:5000/api/upload', formData, config);
-      setImage(data);
+      setImages(prev => [...prev, ...data]);
       setUploading(false);
     } catch (error) {
       console.error(error);
+      alert('Error uploading images');
       setUploading(false);
     }
+  };
+
+  const removeImage = (index) => {
+    setImages(images.filter((_, i) => i !== index));
   };
 
   const submitHandler = async (e) => {
@@ -72,7 +82,7 @@ const EditListing = () => {
         description,
         category,
         condition,
-        images: image ? [image] : [],
+        images,
         status,
       }, config);
 
@@ -84,21 +94,21 @@ const EditListing = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
-      <h2 className="text-2xl font-bold mb-6 text-gray-900">Edit Listing</h2>
-      <form onSubmit={submitHandler} className="bg-white shadow-sm rounded-lg p-6 border border-gray-200">
+    <div className="max-w-2xl mx-auto px-4 py-8 transition-colors duration-200">
+      <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Edit Listing</h2>
+      <form onSubmit={submitHandler} className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6 border border-gray-200 dark:border-gray-700 transition-colors duration-200">
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Title</label>
-            <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2" />
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Title</label>
+            <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 transition-colors" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Price ($)</label>
-            <input type="number" required value={price} onChange={(e) => setPrice(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2" />
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Price ($)</label>
+            <input type="number" required value={price} onChange={(e) => setPrice(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 transition-colors" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Category</label>
-            <select value={category} onChange={(e) => setCategory(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
+            <select value={category} onChange={(e) => setCategory(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 transition-colors">
               <option value="Electronics">Electronics</option>
               <option value="Books">Books</option>
               <option value="Furniture">Furniture</option>
@@ -107,8 +117,8 @@ const EditListing = () => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Condition</label>
-            <select value={condition} onChange={(e) => setCondition(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Condition</label>
+            <select value={condition} onChange={(e) => setCondition(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 transition-colors">
               <option value="New">New</option>
               <option value="Like New">Like New</option>
               <option value="Good">Good</option>
@@ -117,21 +127,30 @@ const EditListing = () => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Status</label>
-            <select value={status} onChange={(e) => setStatus(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2">
-              <option value="active">Active</option>
-              <option value="sold">Sold</option>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
+            <select value={status} onChange={(e) => setStatus(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 transition-colors">
+              <option value="Available">Available</option>
+              <option value="Sold">Sold</option>
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Description</label>
-            <textarea required rows="4" value={description} onChange={(e) => setDescription(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"></textarea>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
+            <textarea required rows="4" value={description} onChange={(e) => setDescription(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 transition-colors"></textarea>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Image</label>
-            <input type="text" placeholder="Enter image URL or upload" value={image} onChange={(e) => setImage(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 mb-2" />
-            <input type="file" id="image-file" onChange={uploadFileHandler} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
-            {uploading && <p className="text-sm text-gray-500 mt-1">Uploading...</p>}
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Images (Max 5)</label>
+            <input type="file" id="image-file" multiple accept="image/*" onChange={uploadFileHandler} className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/30 file:text-blue-700 dark:file:text-blue-400 hover:file:bg-blue-100 dark:hover:file:bg-blue-900/50 mt-2 mb-2 transition-colors" />
+            {uploading && <p className="text-sm text-blue-500 mt-1">Uploading...</p>}
+            {images.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {images.map((img, index) => (
+                  <div key={index} className="relative group">
+                    <img src={`http://localhost:5000${img}`} alt="Preview" className="h-20 w-20 object-cover rounded border border-gray-200 dark:border-gray-700" />
+                    <button type="button" onClick={() => removeImage(index)} className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 text-xs w-5 h-5 flex items-center justify-center -mt-2 -mr-2 shadow">X</button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <button type="submit" className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 font-medium">Update Listing</button>
         </div>

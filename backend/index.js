@@ -1,43 +1,96 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import connectDB from './config/db.js';
-
-// Load env vars
-dotenv.config();
-
-// Connect to database
-connectDB();
+import mongoose from 'mongoose';
+import http from 'http';
+import { Server } from 'socket.io';
 
 import authRoutes from './routes/authRoutes.js';
 import listingRoutes from './routes/listingRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
+import wishlistRoutes from './routes/wishlistRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
+import reportRoutes from './routes/reportRoutes.js';
+import messageRoutes from './routes/messageRoutes.js';
+import reviewRoutes from './routes/reviewRoutes.js';
+import supportRoutes from './routes/supportRoutes.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+dotenv.config();
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  },
+});
 
 // Middleware
-app.use(express.json());
 app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Socket.io Logic
+const userSockets = new Map(); // Map userId to socketId
+
+io.on('connection', (socket) => {
+  socket.on('register', (userId) => {
+    if (userId) {
+      userSockets.set(userId, socket.id);
+    }
+  });
+
+  socket.on('send_message', (data) => {
+    // data should contain { sender, receiver, content, listing, createdAt, ... }
+    const receiverSocketId = userSockets.get(data.receiver);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit('receive_message', data);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    for (let [userId, socketId] of userSockets.entries()) {
+      if (socketId === socket.id) {
+        userSockets.delete(userId);
+        break;
+      }
+    }
+  });
+});
 
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/listings', listingRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/messages', messageRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/support', supportRoutes);
 
 const dirname = path.resolve();
 app.use('/uploads', express.static(path.join(dirname, '/uploads')));
 
-app.get('/', (req, res) => {
-  res.send('API is running...');
+// Error handling middleware
+app.use((err, req, res, next) => {
+  const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+  res.status(statusCode);
+  res.json({
+    message: err.message,
+    stack: process.env.NODE_ENV === 'production' ? null : err.stack,
+  });
 });
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => {
+    server.listen(PORT, () => {
+      console.log(`Server running on port ${PORT} with Socket.io`);
+    });
+  })
+  .catch((error) => console.log(error.message));

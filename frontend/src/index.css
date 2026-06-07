@@ -1,10 +1,16 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   --primary-color: #3b82f6;
   --secondary-color: #1e40af;
   --background-color: #f3f4f6;
   --text-color: #1f2937;
+}
+
+:root.dark {
+  --background-color: #111827;
+  --text-color: #f3f4f6;
 }
 
 body {
