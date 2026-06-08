@@ -2,7 +2,8 @@ import express from 'express';
 import {
   getConversations,
   getMessages,
-  sendMessage
+  sendMessage,
+  updateConversationMeta
 } from '../controllers/messageController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -13,6 +14,9 @@ router.route('/')
 
 router.route('/conversations')
   .get(protect, getConversations);
+
+router.route('/meta/:otherUserId')
+  .put(protect, updateConversationMeta);
 
 router.route('/:otherUserId')
   .get(protect, getMessages);

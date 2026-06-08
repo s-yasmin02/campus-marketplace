@@ -59,6 +59,7 @@ const Settings = () => {
   });
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [profileImageError, setProfileImageError] = useState(false);
 
   // Logout State
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -91,6 +92,7 @@ const Settings = () => {
         phoneNumber: data.phoneNumber || '',
         profilePicture: data.profilePicture || ''
       });
+      setProfileImageError(false);
       if (data.notificationPreferences) {
         setNotificationData(data.notificationPreferences);
       }
@@ -213,30 +215,21 @@ const Settings = () => {
     setProfileData({ ...profileData, [e.target.name]: e.target.value });
   };
 
-  const uploadCloudinary = async (e) => {
+  const uploadImage = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // TODO: Replace with actual Cloudinary credentials
-    const CLOUD_NAME = 'YOUR_CLOUD_NAME';
-    const UPLOAD_PRESET = 'YOUR_UPLOAD_PRESET';
-
-    if (CLOUD_NAME === 'YOUR_CLOUD_NAME') {
-      alert('Cloudinary is not configured. Please provide your Cloud Name and Upload Preset in Settings.jsx.');
-      return;
-    }
-
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', UPLOAD_PRESET);
+    formData.append('images', file);
 
     try {
       setUploadingImage(true);
-      const { data } = await axios.post(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, formData);
-      setProfileData({ ...profileData, profilePicture: data.secure_url });
+      const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+      const { data } = await axios.post('http://localhost:5000/api/upload', formData, config);
+      setProfileData({ ...profileData, profilePicture: data[0] });
     } catch (error) {
-      console.error('Cloudinary upload error:', error);
-      alert('Failed to upload image. Make sure your upload preset is Unsigned.');
+      console.error('Upload error:', error);
+      alert('Failed to upload image.');
     } finally {
       setUploadingImage(false);
     }
@@ -312,27 +305,27 @@ const Settings = () => {
             )}
 
             {/* Email View */}
-            <div className="bg-gray-50 p-6 rounded-xl border border-gray-100">
-              <h4 className="text-lg font-semibold text-gray-800 mb-4">Email Address</h4>
-              <p className="text-gray-600 mb-2">Your email address is used for login and notifications.</p>
-              <input type="email" value={user.email} className="w-full rounded-md border border-gray-300 px-4 py-2 bg-gray-200 text-gray-500 cursor-not-allowed" readOnly />
+            <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 transition-colors duration-200">
+              <h4 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Email Address</h4>
+              <p className="text-gray-600 dark:text-gray-400 mb-2">Your email address is used for login and notifications.</p>
+              <input type="email" value={user.email} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 bg-gray-100/50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 cursor-not-allowed transition-all duration-300 shadow-sm" readOnly />
             </div>
 
             {/* Change Password */}
-            <div className="bg-gray-50 p-6 rounded-xl border border-gray-100">
-              <h4 className="text-lg font-semibold text-gray-800 mb-4">Change Password</h4>
+            <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 transition-colors duration-200 mt-6">
+              <h4 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Change Password</h4>
               <form onSubmit={updatePassword} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
-                  <input type="password" name="currentPassword" value={passwordData.currentPassword} onChange={handlePasswordChange} className="w-full rounded-md border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Current Password</label>
+                  <input type="password" name="currentPassword" value={passwordData.currentPassword} onChange={handlePasswordChange} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 focus:bg-white dark:focus:bg-gray-800 shadow-sm focus:shadow-md outline-none transition-all duration-300" required />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-                  <input type="password" name="newPassword" value={passwordData.newPassword} onChange={handlePasswordChange} className="w-full rounded-md border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Password</label>
+                  <input type="password" name="newPassword" value={passwordData.newPassword} onChange={handlePasswordChange} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 focus:bg-white dark:focus:bg-gray-800 shadow-sm focus:shadow-md outline-none transition-all duration-300" required />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
-                  <input type="password" name="confirmPassword" value={passwordData.confirmPassword} onChange={handlePasswordChange} className="w-full rounded-md border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirm New Password</label>
+                  <input type="password" name="confirmPassword" value={passwordData.confirmPassword} onChange={handlePasswordChange} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 focus:bg-white dark:focus:bg-gray-800 shadow-sm focus:shadow-md outline-none transition-all duration-300" required />
                 </div>
                 <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors">
                   Update Password
@@ -341,9 +334,9 @@ const Settings = () => {
             </div>
 
             {/* Delete Account */}
-            <div className="bg-red-50 p-6 rounded-xl border border-red-100">
-              <h4 className="text-lg font-semibold text-red-800 mb-2">Danger Zone</h4>
-              <p className="text-red-600 mb-4">Permanently delete your account and all associated data (listings, messages, etc.). This action cannot be undone.</p>
+            <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-xl border border-red-100 dark:border-red-900/50 mt-6 transition-colors duration-200">
+              <h4 className="text-lg font-semibold text-red-800 dark:text-red-400 mb-2">Danger Zone</h4>
+              <p className="text-red-600 dark:text-red-300 mb-4">Permanently delete your account and all associated data (listings, messages, etc.). This action cannot be undone.</p>
               <button onClick={() => setShowDeleteModal(true)} className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-6 rounded-lg transition-colors">
                 Delete Account
               </button>
@@ -377,52 +370,61 @@ const Settings = () => {
             <p className="text-gray-600">Update your public profile and contact information.</p>
             
             {loadingProfile ? (
-              <div className="p-8 text-center text-gray-500">Loading profile data...</div>
+              <div className="p-8 text-center text-gray-500 dark:text-gray-400">Loading profile data...</div>
             ) : (
-              <form onSubmit={saveProfile} className="bg-gray-50 p-6 rounded-xl border border-gray-100 space-y-6">
+              <form onSubmit={saveProfile} className="bg-gray-50 dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 space-y-6 transition-colors duration-200">
                 
                 {/* Profile Picture */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Profile Picture</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Profile Picture</label>
                   <div className="flex items-center space-x-4">
-                    <div className="h-20 w-20 rounded-full border-2 border-gray-200 overflow-hidden bg-white flex items-center justify-center">
-                      {profileData.profilePicture ? (
-                        <img src={profileData.profilePicture} alt="Profile" className="h-full w-full object-cover" />
+                    <div className="h-20 w-20 rounded-full border-2 border-gray-200 dark:border-gray-600 overflow-hidden bg-gray-50 dark:bg-gray-800 flex items-center justify-center transition-colors duration-200 shrink-0">
+                      {profileData.profilePicture && !profileImageError ? (
+                        <img 
+                          src={profileData.profilePicture.startsWith('http') ? profileData.profilePicture : `http://localhost:5000${profileData.profilePicture}`} 
+                          alt="Profile" 
+                          className="h-full w-full object-cover" 
+                          onError={() => setProfileImageError(true)}
+                        />
+                      ) : profileData.name ? (
+                        <span className="text-2xl font-bold text-gray-400 dark:text-gray-500">
+                          {profileData.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                        </span>
                       ) : (
-                        <User className="h-8 w-8 text-gray-400" />
+                        <User className="h-8 w-8 text-gray-400 dark:text-gray-500" />
                       )}
                     </div>
                     <div>
-                      <label className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer inline-block font-medium text-sm shadow-sm">
+                      <label className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer inline-block font-medium text-sm shadow-sm">
                         Change Picture
-                        <input type="file" className="hidden" accept="image/*" onChange={uploadCloudinary} disabled={uploadingImage} />
+                        <input type="file" className="hidden" accept="image/*" onChange={uploadImage} disabled={uploadingImage} />
                       </label>
-                      {uploadingImage && <p className="text-xs text-blue-500 mt-2 font-medium">Uploading to Cloudinary...</p>}
+                      {uploadingImage && <p className="text-xs text-blue-500 mt-2 font-medium">Uploading image...</p>}
                     </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                    <input type="text" name="name" value={profileData.name} onChange={handleProfileChange} className="w-full rounded-md border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white" required />
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name</label>
+                    <input type="text" name="name" value={profileData.name} onChange={handleProfileChange} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 focus:bg-white dark:focus:bg-gray-800 shadow-sm focus:shadow-md outline-none transition-all duration-300" required />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                    <input type="text" name="username" value={profileData.username} onChange={handleProfileChange} placeholder="@student123" className="w-full rounded-md border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white" />
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
+                    <input type="text" name="username" value={profileData.username} onChange={handleProfileChange} placeholder="@student123" className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 focus:bg-white dark:focus:bg-gray-800 shadow-sm focus:shadow-md outline-none transition-all duration-300" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <input type="email" name="email" value={profileData.email} onChange={handleProfileChange} className="w-full rounded-md border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-gray-100 text-gray-500" readOnly />
-                    <p className="text-xs text-gray-400 mt-1">Email cannot be changed here.</p>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                    <input type="email" name="email" value={profileData.email} onChange={handleProfileChange} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 bg-gray-100/50 dark:bg-gray-800/30 text-gray-500 dark:text-gray-400 outline-none transition-all duration-300 shadow-sm" readOnly />
+                    <p className="text-xs text-gray-400 mt-1 pl-1">Email cannot be changed here.</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                    <input type="text" name="phoneNumber" value={profileData.phoneNumber} onChange={handleProfileChange} placeholder="+1 (555) 000-0000" className="w-full rounded-md border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white" />
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone Number</label>
+                    <input type="text" name="phoneNumber" value={profileData.phoneNumber} onChange={handleProfileChange} placeholder="+1 (555) 000-0000" className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 focus:bg-white dark:focus:bg-gray-800 shadow-sm focus:shadow-md outline-none transition-all duration-300" />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
-                    <textarea name="bio" value={profileData.bio} onChange={handleProfileChange} rows="3" placeholder="Tell us a little bit about yourself..." className="w-full rounded-md border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"></textarea>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bio</label>
+                    <textarea name="bio" value={profileData.bio} onChange={handleProfileChange} rows="3" placeholder="Tell us a little bit about yourself..." className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 focus:bg-white dark:focus:bg-gray-800 shadow-sm focus:shadow-md outline-none transition-all duration-300"></textarea>
                   </div>
                 </div>
 
@@ -442,43 +444,43 @@ const Settings = () => {
             <p className="text-gray-600">Choose what updates you want to receive.</p>
             
             {notificationMessage && (
-              <div className="p-4 rounded-lg bg-green-50 text-green-700 border border-green-100 font-medium">
+              <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-100 dark:border-green-800 font-medium">
                 {notificationMessage}
               </div>
             )}
 
-            <div className="bg-gray-50 p-6 rounded-xl border border-gray-100 space-y-4">
+            <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 space-y-4 transition-colors duration-200">
               <label className="flex items-center space-x-3 cursor-pointer group">
-                <div className={`w-11 h-6 rounded-full transition-colors relative ${notificationData.chat ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                <div className={`w-11 h-6 rounded-full transition-colors relative ${notificationData.chat ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'}`}>
                   <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 left-0.5 transition-transform ${notificationData.chat ? 'translate-x-5' : 'translate-x-0'}`}></div>
                 </div>
                 <input type="checkbox" className="hidden" checked={notificationData.chat} onChange={() => handleNotificationToggle('chat')} />
-                <span className="text-gray-700 font-medium group-hover:text-blue-600 transition-colors">Chat Messages</span>
+                <span className="text-gray-700 dark:text-gray-300 font-medium group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Chat Messages</span>
               </label>
               
-              <label className="flex items-center space-x-3 cursor-pointer group">
-                <div className={`w-11 h-6 rounded-full transition-colors relative ${notificationData.wishlist ? 'bg-blue-600' : 'bg-gray-300'}`}>
+              <label className="flex items-center space-x-3 cursor-pointer group pt-2">
+                <div className={`w-11 h-6 rounded-full transition-colors relative ${notificationData.wishlist ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'}`}>
                   <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 left-0.5 transition-transform ${notificationData.wishlist ? 'translate-x-5' : 'translate-x-0'}`}></div>
                 </div>
                 <input type="checkbox" className="hidden" checked={notificationData.wishlist} onChange={() => handleNotificationToggle('wishlist')} />
-                <span className="text-gray-700 font-medium group-hover:text-blue-600 transition-colors">Wishlist Updates</span>
+                <span className="text-gray-700 dark:text-gray-300 font-medium group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Wishlist Updates</span>
               </label>
 
-              <label className="flex items-center space-x-3 cursor-pointer group">
-                <div className={`w-11 h-6 rounded-full transition-colors relative ${notificationData.review ? 'bg-blue-600' : 'bg-gray-300'}`}>
+              <label className="flex items-center space-x-3 cursor-pointer group pt-2">
+                <div className={`w-11 h-6 rounded-full transition-colors relative ${notificationData.review ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'}`}>
                   <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 left-0.5 transition-transform ${notificationData.review ? 'translate-x-5' : 'translate-x-0'}`}></div>
                 </div>
                 <input type="checkbox" className="hidden" checked={notificationData.review} onChange={() => handleNotificationToggle('review')} />
-                <span className="text-gray-700 font-medium group-hover:text-blue-600 transition-colors">New Reviews</span>
+                <span className="text-gray-700 dark:text-gray-300 font-medium group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">New Reviews</span>
               </label>
 
               {user.role === 'admin' && (
-                <label className="flex items-center space-x-3 cursor-pointer group">
-                  <div className={`w-11 h-6 rounded-full transition-colors relative ${notificationData.report ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                <label className="flex items-center space-x-3 cursor-pointer group pt-2">
+                  <div className={`w-11 h-6 rounded-full transition-colors relative ${notificationData.report ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'}`}>
                     <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 left-0.5 transition-transform ${notificationData.report ? 'translate-x-5' : 'translate-x-0'}`}></div>
                   </div>
                   <input type="checkbox" className="hidden" checked={notificationData.report} onChange={() => handleNotificationToggle('report')} />
-                  <span className="text-gray-700 font-medium group-hover:text-blue-600 transition-colors">New Reports (Admin)</span>
+                  <span className="text-gray-700 dark:text-gray-300 font-medium group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">New Reports (Admin)</span>
                 </label>
               )}
             </div>
@@ -497,55 +499,55 @@ const Settings = () => {
             )}
 
             {/* Profile Visibility */}
-            <div className="bg-gray-50 p-6 rounded-xl border border-gray-100 space-y-4">
-              <h4 className="text-lg font-semibold text-gray-800 mb-2">Profile Visibility</h4>
+            <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 space-y-4 transition-colors duration-200">
+              <h4 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">Profile Visibility</h4>
               
               <label className="flex items-center space-x-3 cursor-pointer group">
-                <div className={`w-11 h-6 rounded-full transition-colors relative ${privacyData.publicProfile ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                <div className={`w-11 h-6 rounded-full transition-colors relative ${privacyData.publicProfile ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'}`}>
                   <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 left-0.5 transition-transform ${privacyData.publicProfile ? 'translate-x-5' : 'translate-x-0'}`}></div>
                 </div>
                 <input type="checkbox" className="hidden" checked={privacyData.publicProfile} onChange={() => handlePrivacyToggle('publicProfile')} />
                 <div>
-                  <span className="text-gray-700 font-medium group-hover:text-blue-600 transition-colors block">Public Profile</span>
-                  <span className="text-gray-500 text-sm">Allow other users to view your profile and listings.</span>
+                  <span className="text-gray-700 dark:text-gray-300 font-medium group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors block">Public Profile</span>
+                  <span className="text-gray-500 dark:text-gray-400 text-sm">Allow other users to view your profile and listings.</span>
                 </div>
               </label>
 
               <label className="flex items-center space-x-3 cursor-pointer group pt-2">
-                <div className={`w-11 h-6 rounded-full transition-colors relative ${privacyData.showEmail ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                <div className={`w-11 h-6 rounded-full transition-colors relative ${privacyData.showEmail ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'}`}>
                   <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 left-0.5 transition-transform ${privacyData.showEmail ? 'translate-x-5' : 'translate-x-0'}`}></div>
                 </div>
                 <input type="checkbox" className="hidden" checked={privacyData.showEmail} onChange={() => handlePrivacyToggle('showEmail')} />
                 <div>
-                  <span className="text-gray-700 font-medium group-hover:text-blue-600 transition-colors block">Show Email</span>
-                  <span className="text-gray-500 text-sm">Display your email address on your public profile.</span>
+                  <span className="text-gray-700 dark:text-gray-300 font-medium group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors block">Show Email</span>
+                  <span className="text-gray-500 dark:text-gray-400 text-sm">Display your email address on your public profile.</span>
                 </div>
               </label>
 
               <label className="flex items-center space-x-3 cursor-pointer group pt-2">
-                <div className={`w-11 h-6 rounded-full transition-colors relative ${privacyData.showPhoneNumber ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                <div className={`w-11 h-6 rounded-full transition-colors relative ${privacyData.showPhoneNumber ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'}`}>
                   <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 left-0.5 transition-transform ${privacyData.showPhoneNumber ? 'translate-x-5' : 'translate-x-0'}`}></div>
                 </div>
                 <input type="checkbox" className="hidden" checked={privacyData.showPhoneNumber} onChange={() => handlePrivacyToggle('showPhoneNumber')} />
                 <div>
-                  <span className="text-gray-700 font-medium group-hover:text-blue-600 transition-colors block">Show Phone Number</span>
-                  <span className="text-gray-500 text-sm">Display your phone number on your public profile.</span>
+                  <span className="text-gray-700 dark:text-gray-300 font-medium group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors block">Show Phone Number</span>
+                  <span className="text-gray-500 dark:text-gray-400 text-sm">Display your phone number on your public profile.</span>
                 </div>
               </label>
             </div>
 
             {/* Security Preferences */}
-            <div className="bg-gray-50 p-6 rounded-xl border border-gray-100 space-y-4 mt-6">
-              <h4 className="text-lg font-semibold text-gray-800 mb-2">Security Preferences</h4>
+            <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 space-y-4 mt-6 transition-colors duration-200">
+              <h4 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">Security Preferences</h4>
               
               <label className="flex items-center space-x-3 cursor-pointer group">
-                <div className={`w-11 h-6 rounded-full transition-colors relative ${privacyData.twoFactorAuth ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                <div className={`w-11 h-6 rounded-full transition-colors relative ${privacyData.twoFactorAuth ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'}`}>
                   <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 left-0.5 transition-transform ${privacyData.twoFactorAuth ? 'translate-x-5' : 'translate-x-0'}`}></div>
                 </div>
                 <input type="checkbox" className="hidden" checked={privacyData.twoFactorAuth} onChange={() => handlePrivacyToggle('twoFactorAuth')} />
                 <div>
-                  <span className="text-gray-700 font-medium group-hover:text-blue-600 transition-colors block">Two-Factor Authentication</span>
-                  <span className="text-gray-500 text-sm">Require an extra security code when logging in.</span>
+                  <span className="text-gray-700 dark:text-gray-300 font-medium group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors block">Two-Factor Authentication</span>
+                  <span className="text-gray-500 dark:text-gray-400 text-sm">Require an extra security code when logging in.</span>
                 </div>
               </label>
             </div>
@@ -588,17 +590,6 @@ const Settings = () => {
                 <span>Dark</span>
               </button>
 
-              <button 
-                onClick={() => handleAppearanceChange('system')}
-                className={`flex-1 flex items-center justify-center space-x-2 px-4 py-4 rounded-xl font-medium transition-all ${
-                  appearance === 'system' 
-                    ? 'bg-gray-100 dark:bg-gray-600 border-2 border-blue-500 text-gray-900 dark:text-white shadow-md' 
-                    : 'bg-gray-100 dark:bg-gray-600 border-2 border-transparent text-gray-600 dark:text-gray-300 hover:border-gray-300 shadow-sm'
-                }`}
-              >
-                <SettingsIcon className="w-4 h-4" />
-                <span>System</span>
-              </button>
             </div>
           </div>
         );
@@ -648,7 +639,7 @@ const Settings = () => {
                   <select 
                     value={supportData.type}
                     onChange={(e) => setSupportData({...supportData, type: e.target.value})}
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors"
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 focus:bg-white dark:focus:bg-gray-800 shadow-sm focus:shadow-md outline-none transition-all duration-300"
                   >
                     <option value="support">General Support</option>
                     <option value="bug">Report a Bug / Issue</option>
@@ -663,7 +654,7 @@ const Settings = () => {
                     value={supportData.subject}
                     onChange={(e) => setSupportData({...supportData, subject: e.target.value})}
                     placeholder="Briefly describe your issue" 
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors" 
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 focus:bg-white dark:focus:bg-gray-800 shadow-sm focus:shadow-md outline-none transition-all duration-300" 
                   />
                 </div>
 
@@ -675,7 +666,7 @@ const Settings = () => {
                     value={supportData.message}
                     onChange={(e) => setSupportData({...supportData, message: e.target.value})}
                     placeholder="Please provide as much detail as possible..." 
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors"
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 focus:bg-white dark:focus:bg-gray-800 shadow-sm focus:shadow-md outline-none transition-all duration-300"
                   ></textarea>
                 </div>
 

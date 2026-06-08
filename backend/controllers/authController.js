@@ -98,10 +98,51 @@ export const getUserProfile = async (req, res) => {
         notificationPreferences: user.notificationPreferences,
         privacyPreferences: user.privacyPreferences,
         appearance: user.appearance,
+        blockedUsers: user.blockedUsers,
         createdAt: user.createdAt,
         listingsCount,
         wishlistCount,
       });
+    } else {
+      res.status(404).json({ message: 'User not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get user by ID (Public profile)
+// @route   GET /api/auth/user/:id
+// @access  Public
+export const getUserById = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('-password -notificationPreferences -appearance');
+
+    if (user) {
+      const listingsCount = await Listing.countDocuments({ seller: user._id, status: 'Available' });
+      
+      const responseData = {
+        _id: user._id,
+        role: user.role,
+        name: user.name,
+        profilePicture: user.profilePicture,
+        username: user.username,
+        bio: user.bio,
+        rating: user.rating,
+        numReviews: user.numReviews,
+        createdAt: user.createdAt,
+        listingsCount,
+      };
+
+      if (user.privacyPreferences?.showEmail) {
+        responseData.email = user.email;
+      }
+
+      if (user.privacyPreferences?.showPhoneNumber) {
+        responseData.phoneNumber = user.phoneNumber;
+      }
+
+      res.json(responseData);
     } else {
       res.status(404).json({ message: 'User not found' });
     }
@@ -203,6 +244,43 @@ export const deleteUserProfile = async (req, res) => {
     } else {
       res.status(404).json({ message: 'User not found' });
     }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Block a user
+// @route   POST /api/auth/block/:id
+// @access  Private
+export const blockUser = async (req, res) => {
+  try {
+    const userToBlock = await User.findById(req.params.id);
+    if (!userToBlock) return res.status(404).json({ message: 'User not found' });
+
+    const user = await User.findById(req.user._id);
+    if (!user.blockedUsers.includes(userToBlock._id)) {
+      user.blockedUsers.push(userToBlock._id);
+      await user.save();
+    }
+    
+    res.json({ message: 'User blocked successfully', blockedUsers: user.blockedUsers });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Unblock a user
+// @route   POST /api/auth/unblock/:id
+// @access  Private
+export const unblockUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    user.blockedUsers = user.blockedUsers.filter(
+      id => id.toString() !== req.params.id.toString()
+    );
+    await user.save();
+    
+    res.json({ message: 'User unblocked successfully', blockedUsers: user.blockedUsers });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -14,6 +14,8 @@ import reportRoutes from './routes/reportRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import supportRoutes from './routes/supportRoutes.js';
+import followRoutes from './routes/followRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -35,11 +37,14 @@ app.use(express.urlencoded({ extended: true }));
 
 // Socket.io Logic
 const userSockets = new Map(); // Map userId to socketId
+app.set('io', io);
+app.set('userSockets', userSockets);
 
 io.on('connection', (socket) => {
   socket.on('register', (userId) => {
     if (userId) {
       userSockets.set(userId, socket.id);
+      io.emit('get_online_users', Array.from(userSockets.keys()));
     }
   });
 
@@ -51,10 +56,32 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('typing', ({ receiverId, senderId }) => {
+    const receiverSocketId = userSockets.get(receiverId);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit('user_typing', senderId);
+    }
+  });
+
+  socket.on('stop_typing', ({ receiverId, senderId }) => {
+    const receiverSocketId = userSockets.get(receiverId);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit('user_stop_typing', senderId);
+    }
+  });
+
+  socket.on('mark_as_read', async ({ receiverId, senderId }) => {
+    const receiverSocketId = userSockets.get(receiverId);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit('messages_read', senderId);
+    }
+  });
+
   socket.on('disconnect', () => {
     for (let [userId, socketId] of userSockets.entries()) {
       if (socketId === socket.id) {
         userSockets.delete(userId);
+        io.emit('get_online_users', Array.from(userSockets.keys()));
         break;
       }
     }
@@ -71,6 +98,8 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/support', supportRoutes);
+app.use('/api/follow', followRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 const dirname = path.resolve();
 app.use('/uploads', express.static(path.join(dirname, '/uploads')));

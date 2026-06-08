@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
+import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { Camera, User, Mail, Calendar, Package, Heart, Star } from 'lucide-react';
+import { Camera, User, Mail, Calendar, Package, Heart, Star, X } from 'lucide-react';
 
 const Profile = () => {
   const { user, login } = useContext(AuthContext);
@@ -13,6 +14,11 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [followersList, setFollowersList] = useState([]);
+  const [followingList, setFollowingList] = useState([]);
+  const [showFollowModal, setShowFollowModal] = useState(null); // 'followers' or 'following'
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -23,6 +29,10 @@ const Profile = () => {
         setName(data.name);
         setEmail(data.email);
         setProfilePicture(data.profilePicture || '');
+
+        const { data: countsData } = await axios.get(`http://localhost:5000/api/follow/counts/${user._id}`);
+        setFollowersCount(countsData.followersCount);
+        setFollowingCount(countsData.followingCount);
       } catch (error) {
         console.error('Error fetching profile', error);
       } finally {
@@ -78,6 +88,17 @@ const Profile = () => {
     }
   };
 
+  const openFollowModal = async (type) => {
+    setShowFollowModal(type);
+    try {
+      const { data } = await axios.get(`http://localhost:5000/api/follow/${type}/${user._id}`);
+      if (type === 'followers') setFollowersList(data);
+      if (type === 'following') setFollowingList(data);
+    } catch (error) {
+      console.error(`Error fetching ${type}:`, error);
+    }
+  };
+
   if (loading) return <div className="text-center py-12">Loading profile...</div>;
   if (!profile) return <div className="text-center py-12">Profile not found.</div>;
 
@@ -92,6 +113,7 @@ const Profile = () => {
         
         <div className="px-8 pb-8">
           <div className="relative flex justify-between items-end -mt-16 mb-8">
+              {/* Stats Grid */}
             {/* Avatar */}
             <div className="relative group">
               <div className="h-32 w-32 rounded-full border-4 border-white dark:border-gray-800 bg-white dark:bg-gray-900 shadow-lg overflow-hidden flex items-center justify-center transition-colors duration-200">
@@ -144,7 +166,26 @@ const Profile = () => {
           ) : (
             <div>
               <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">{profile.name}</h2>
-              <p className="text-gray-500 dark:text-gray-400 flex items-center mb-8"><Mail size={16} className="mr-2" /> {profile.email}</p>
+              <div className="flex items-center gap-4 mb-8">
+                <p className="text-gray-500 dark:text-gray-400 flex items-center"><Mail size={16} className="mr-2" /> {profile.email}</p>
+                {profile.role !== 'admin' && (
+                  <>
+                    <div className="h-4 w-px bg-gray-300 dark:bg-gray-600"></div>
+                    <div 
+                      className="flex items-center gap-1 text-gray-600 dark:text-gray-300 cursor-pointer hover:underline"
+                      onClick={() => openFollowModal('followers')}
+                    >
+                      <span className="font-semibold text-gray-900 dark:text-white">{followersCount}</span> Followers
+                    </div>
+                    <div 
+                      className="flex items-center gap-1 text-gray-600 dark:text-gray-300 cursor-pointer hover:underline"
+                      onClick={() => openFollowModal('following')}
+                    >
+                      <span className="font-semibold text-gray-900 dark:text-white">{followingCount}</span> Following
+                    </div>
+                  </>
+                )}
+              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-6 border border-blue-100 dark:border-blue-800/30 flex flex-col items-center justify-center text-center transition-colors">
@@ -175,6 +216,42 @@ const Profile = () => {
           )}
         </div>
       </div>
+
+      {showFollowModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 px-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
+            <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white capitalize">{showFollowModal}</h3>
+              <button onClick={() => setShowFollowModal(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="overflow-y-auto p-4 flex-1">
+              {(showFollowModal === 'followers' ? followersList : followingList).length === 0 ? (
+                <p className="text-center text-gray-500 dark:text-gray-400 py-4">No users found.</p>
+              ) : (
+                <div className="space-y-4">
+                  {(showFollowModal === 'followers' ? followersList : followingList).map(u => (
+                    <Link to={`/seller/${u._id}`} key={u._id} onClick={() => setShowFollowModal(null)} className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors">
+                      <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden flex-shrink-0">
+                        {u.profilePicture ? (
+                          <img src={u.profilePicture.startsWith('http') ? u.profilePicture : `http://localhost:5000${u.profilePicture}`} alt={u.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400"><User size={20} /></div>
+                        )}
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-white">{u.name}</div>
+                        {u.username && <div className="text-xs text-gray-500 dark:text-gray-400">@{u.username}</div>}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { ShoppingBag, LogOut, User, MessageCircle, Settings, List, Heart, X, Menu } from 'lucide-react';
+import { ShoppingBag, LogOut, User, MessageCircle, Settings, List, Heart, X, Menu, Bell, Check } from 'lucide-react';
 import axios from 'axios';
 import io from 'socket.io-client';
 
@@ -13,6 +13,9 @@ const Navbar = () => {
   const navigate = useNavigate();
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const unreadNotifications = notifications.filter(n => !n.read).length;
 
   // Prevent scrolling when sidebar is open
   useEffect(() => {
@@ -39,7 +42,18 @@ const Navbar = () => {
         }
       };
 
+      const fetchNotifications = async () => {
+        try {
+          const config = { headers: { Authorization: `Bearer ${user.token}` } };
+          const { data } = await axios.get(`${ENDPOINT}/api/notifications`, config);
+          setNotifications(data);
+        } catch (error) {
+          console.error('Error fetching notifications:', error);
+        }
+      };
+
       fetchUnread();
+      fetchNotifications();
 
       socket = io(ENDPOINT);
       socket.emit('register', user._id);
@@ -48,11 +62,41 @@ const Navbar = () => {
         fetchUnread();
       });
 
+      socket.on('new_notification', (notification) => {
+        setNotifications((prev) => [notification, ...prev]);
+      });
+
       return () => {
         if (socket) socket.disconnect();
       };
     }
   }, [user]);
+
+  const handleNotificationClick = async (notification) => {
+    try {
+      if (!notification.read) {
+        const config = { headers: { Authorization: `Bearer ${user.token}` } };
+        await axios.put(`${ENDPOINT}/api/notifications/${notification._id}/read`, {}, config);
+        setNotifications((prev) => 
+          prev.map((n) => (n._id === notification._id ? { ...n, read: true } : n))
+        );
+      }
+      setShowNotifications(false);
+      navigate(`/listing/${notification.listing._id}`);
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      const config = { headers: { Authorization: `Bearer ${user.token}` } };
+      await axios.put(`${ENDPOINT}/api/notifications/read-all`, {}, config);
+      setNotifications((prev) => prev.map(n => ({ ...n, read: true })));
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -95,6 +139,84 @@ const Navbar = () => {
                         </span>
                       )}
                     </Link>
+
+                    {/* Notifications Bell */}
+                    <div className="relative">
+                      <button 
+                        onClick={() => setShowNotifications(!showNotifications)}
+                        className="relative text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 p-2 rounded-full focus:outline-none transition-colors group"
+                      >
+                        <Bell className="h-6 w-6 text-gray-400 dark:text-gray-500 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors" />
+                        {unreadNotifications > 0 && (
+                          <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-r from-red-500 to-pink-500 text-[9px] font-bold text-white shadow-md ring-2 ring-white transform scale-100">
+                            {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                          </span>
+                        )}
+                      </button>
+
+                      {/* Dropdown Panel */}
+                      {showNotifications && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)}></div>
+                          <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden flex flex-col max-h-[80vh]">
+                            <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
+                              <h3 className="font-bold text-gray-900 dark:text-white">Notifications</h3>
+                              {unreadNotifications > 0 && (
+                                <button 
+                                  onClick={handleMarkAllRead}
+                                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center"
+                                >
+                                  <Check size={14} className="mr-1" />
+                                  Mark all read
+                                </button>
+                              )}
+                            </div>
+                            <div className="overflow-y-auto flex-grow scrollbar-hide">
+                              {notifications.length === 0 ? (
+                                <div className="p-8 text-center text-gray-500 dark:text-gray-400 flex flex-col items-center">
+                                  <Bell className="h-10 w-10 text-gray-300 dark:text-gray-600 mb-3" />
+                                  <p>No notifications yet.</p>
+                                </div>
+                              ) : (
+                                <ul>
+                                  {notifications.map((notif) => (
+                                    <li 
+                                      key={notif._id} 
+                                      onClick={() => handleNotificationClick(notif)}
+                                      className={`p-4 border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors flex gap-3 ${!notif.read ? 'bg-blue-50/50 dark:bg-blue-900/20' : ''}`}
+                                    >
+                                      <div className="flex-shrink-0 relative">
+                                        <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden shadow-sm">
+                                          {notif.sender?.profilePicture ? (
+                                            <img src={notif.sender.profilePicture.startsWith('http') ? notif.sender.profilePicture : `${ENDPOINT}${notif.sender.profilePicture}`} alt="" className="w-full h-full object-cover" />
+                                          ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-gray-500"><User size={20} /></div>
+                                          )}
+                                        </div>
+                                        {!notif.read && <div className="absolute top-0 -left-1 w-2.5 h-2.5 bg-blue-500 rounded-full border border-white dark:border-gray-800"></div>}
+                                      </div>
+                                      <div className="flex-grow">
+                                        <p className="text-sm text-gray-800 dark:text-gray-200 line-clamp-2">
+                                          <span className="font-semibold">{notif.sender?.name}</span> posted a new listing: <span className="font-medium text-gray-900 dark:text-white">{notif.listing?.title}</span>
+                                        </p>
+                                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-medium">
+                                          {new Date(notif.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })}
+                                        </p>
+                                      </div>
+                                      {notif.listing?.images?.length > 0 && (
+                                        <div className="flex-shrink-0 w-12 h-12 rounded-md overflow-hidden bg-gray-100 dark:bg-gray-800">
+                                          <img src={`${ENDPOINT}${notif.listing.images[0]}`} alt="" className="w-full h-full object-cover" />
+                                        </div>
+                                      )}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </>
                 )}
 
@@ -105,7 +227,7 @@ const Navbar = () => {
                 >
                   <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 border-2 border-transparent hover:border-blue-500 transition-all flex items-center justify-center overflow-hidden shadow-sm">
                     {user.profilePicture ? (
-                      <img src={`http://localhost:5000${user.profilePicture}`} alt="Profile" className="h-full w-full object-cover" />
+                      <img src={user.profilePicture.startsWith('http') ? user.profilePicture : `http://localhost:5000${user.profilePicture}`} alt="Profile" className="h-full w-full object-cover" />
                     ) : (
                       <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                     )}
@@ -137,7 +259,7 @@ const Navbar = () => {
                     <div className="flex flex-col items-center mt-4">
                       <div className="h-20 w-20 rounded-full border-4 border-white bg-white shadow-lg overflow-hidden flex items-center justify-center mb-3">
                         {user.profilePicture ? (
-                          <img src={`http://localhost:5000${user.profilePicture}`} alt="Profile" className="h-full w-full object-cover" />
+                          <img src={user.profilePicture.startsWith('http') ? user.profilePicture : `http://localhost:5000${user.profilePicture}`} alt="Profile" className="h-full w-full object-cover" />
                         ) : (
                           <User className="h-10 w-10 text-gray-300" />
                         )}

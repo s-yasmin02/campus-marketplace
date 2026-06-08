@@ -13,8 +13,11 @@ import EditListing from './pages/EditListing';
 import MyListings from './pages/MyListings';
 import Wishlist from './pages/Wishlist';
 import Messages from './pages/Messages';
+import ChatSettings from './pages/ChatSettings';
+import SupportTicket from './pages/SupportTicket';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
+import SellerProfile from './pages/SellerProfile';
 
 function App() {
   useEffect(() => {
@@ -42,8 +45,11 @@ function App() {
             <Route path="/my-listings" element={<MyListings />} />
             <Route path="/wishlist" element={<Wishlist />} />
             <Route path="/messages" element={<Messages />} />
+            <Route path="/settings/chat" element={<ChatSettings />} />
+            <Route path="/messages/:userId/:listingId" element={<Messages />} />
             <Route path="/listing/:id" element={<ListingDetails />} />
             <Route path="/listing/:id/edit" element={<EditListing />} />
+            <Route path="/seller/:id" element={<SellerProfile />} />
             <Route path="/admin-login" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
           </Routes>

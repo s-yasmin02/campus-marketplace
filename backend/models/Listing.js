@@ -32,7 +32,7 @@ const listingSchema = new mongoose.Schema({
   }],
   status: {
     type: String,
-    enum: ['Available', 'Sold'],
+    enum: ['Available', 'Reserved', 'Sold'],
     default: 'Available',
   },
 }, {

@@ -1,4 +1,6 @@
 import Listing from '../models/Listing.js';
+import Follow from '../models/Follow.js';
+import Message from '../models/Message.js';
 
 // @desc    Fetch all listings
 // @route   GET /api/listings
@@ -13,10 +15,19 @@ export const getListings = async (req, res) => {
       ? { category: req.query.category }
       : {};
 
+    const statusFilter = req.query.status && req.query.status !== 'All' 
+      ? { status: req.query.status } 
+      : { status: 'Available' };
+
+    // If they explicitly pass 'All', we don't restrict by status
+    if (req.query.status === 'All') {
+      delete statusFilter.status;
+    }
+
     const listings = await Listing.find({ 
       ...keyword,
       ...category,
-      status: 'Available' 
+      ...statusFilter
     }).populate('seller', 'name email rating numReviews');
     
     res.json(listings);
@@ -72,6 +83,41 @@ export const createListing = async (req, res) => {
     });
 
     const createdListing = await listing.save();
+
+    // Notify followers
+    try {
+      const followers = await Follow.find({ seller: req.user._id });
+      const Notification = (await import('../models/Notification.js')).default;
+      
+      const notifications = await Promise.all(followers.map(async f => {
+        const notif = await Notification.create({
+          recipient: f.follower,
+          sender: req.user._id,
+          listing: createdListing._id,
+          read: false
+        });
+        
+        // Populate for socket emission
+        return await Notification.findById(notif._id)
+          .populate('sender', 'name profilePicture')
+          .populate('listing', 'title images');
+      }));
+
+      // Emit via Socket.io
+      const io = req.app.get('io');
+      const userSockets = req.app.get('userSockets');
+      if (io && userSockets) {
+        notifications.forEach(notif => {
+          const socketId = userSockets.get(notif.recipient.toString());
+          if (socketId) {
+            io.to(socketId).emit('new_notification', notif);
+          }
+        });
+      }
+    } catch (notifError) {
+      console.error('Error sending notifications to followers:', notifError);
+    }
+
     res.status(201).json(createdListing);
   } catch (error) {
     res.status(400).json({ message: error.message });

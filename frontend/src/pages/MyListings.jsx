@@ -30,6 +30,17 @@ const MyListings = () => {
     fetchMyListings();
   }, [user, navigate]);
 
+  const updateStatus = async (id, newStatus) => {
+    try {
+      const config = { headers: { Authorization: `Bearer ${user.token}` } };
+      await axios.put(`http://localhost:5000/api/listings/${id}`, { status: newStatus }, config);
+      setListings(listings.map(l => l._id === id ? { ...l, status: newStatus } : l));
+    } catch (error) {
+      console.error(error);
+      alert('Error updating status');
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 transition-colors duration-200">
       <div className="flex justify-between items-center mb-6">
@@ -42,18 +53,39 @@ const MyListings = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {listings.map((listing) => (
           <div key={listing._id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden border border-gray-200 dark:border-gray-700 flex flex-col transition-colors duration-200">
-            <img 
-              src={listing.images[0] ? `http://localhost:5000${listing.images[0]}` : 'https://via.placeholder.com/300x200?text=No+Image'} 
-              alt={listing.title} 
-              className="w-full h-48 object-cover"
-            />
+            <div className="relative overflow-hidden h-48">
+              <img 
+                src={listing.images[0] ? `http://localhost:5000${listing.images[0]}` : 'https://via.placeholder.com/300x200?text=No+Image'} 
+                alt={listing.title} 
+                className={`w-full h-full object-cover transition-all ${listing.status === 'Sold' ? 'opacity-50 grayscale' : ''}`}
+              />
+              {listing.status === 'Sold' && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                  <span className="bg-red-600 text-white px-4 py-1 rounded shadow-md text-lg font-bold uppercase tracking-wider transform -rotate-12 border-2 border-white">
+                    Sold Out
+                  </span>
+                </div>
+              )}
+            </div>
             <div className="p-4 flex-grow flex flex-col justify-between">
               <div>
                 <div className="flex justify-between items-start">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate pr-2">{listing.title}</h3>
-                  <span className={`text-xs font-medium px-2.5 py-0.5 rounded border ${listing.status === 'Available' ? 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800/50' : 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800/50'}`}>
-                    {listing.status}
-                  </span>
+                  <select 
+                    value={listing.status}
+                    onChange={(e) => updateStatus(listing._id, e.target.value)}
+                    className={`text-xs font-medium px-2 py-1 rounded border appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                      listing.status === 'Available' 
+                        ? 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800/50' 
+                        : listing.status === 'Reserved'
+                        ? 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800/50'
+                        : 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800/50'
+                    }`}
+                  >
+                    <option value="Available">Available</option>
+                    <option value="Reserved">Reserved</option>
+                    <option value="Sold">Sold</option>
+                  </select>
                 </div>
                 <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white">${listing.price}</p>
                 <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">{listing.description}</p>

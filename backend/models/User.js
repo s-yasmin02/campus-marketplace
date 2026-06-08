@@ -50,18 +50,25 @@ const userSchema = new mongoose.Schema({
     wishlist: { type: Boolean, default: true },
     review: { type: Boolean, default: true },
     report: { type: Boolean, default: true },
+    soundNotifications: { type: Boolean, default: true },
   },
   privacyPreferences: {
     publicProfile: { type: Boolean, default: true },
     showEmail: { type: Boolean, default: false },
     showPhoneNumber: { type: Boolean, default: false },
     twoFactorAuth: { type: Boolean, default: false },
+    showOnlineStatus: { type: Boolean, default: true },
+    readReceipts: { type: Boolean, default: true },
   },
   appearance: {
     type: String,
     enum: ['light', 'dark', 'system'],
     default: 'system',
   },
+  blockedUsers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
 }, {
   timestamps: true,
 });

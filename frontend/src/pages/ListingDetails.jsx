@@ -17,6 +17,7 @@ const ListingDetails = () => {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [submitReviewLoading, setSubmitReviewLoading] = useState(false);
+  const [editingReviewId, setEditingReviewId] = useState(null);
   
   // Edit form state
   const [title, setTitle] = useState('');
@@ -51,7 +52,7 @@ const ListingDetails = () => {
         }
 
         if (data && data.seller && data.seller._id) {
-          const { data: reviewsData } = await axios.get(`http://localhost:5000/api/reviews/${data.seller._id}`);
+          const { data: reviewsData } = await axios.get(`http://localhost:5000/api/reviews/listing/${id}`);
           setReviews(reviewsData);
         }
       } catch (error) {
@@ -140,21 +141,60 @@ const ListingDetails = () => {
     setSubmitReviewLoading(true);
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.post('http://localhost:5000/api/reviews', {
-        sellerId: listing.seller._id,
-        rating: reviewRating,
-        comment: reviewComment
-      }, config);
-      alert('Review submitted successfully!');
-      const { data: reviewsData } = await axios.get(`http://localhost:5000/api/reviews/${listing.seller._id}`);
+      
+      if (editingReviewId) {
+        await axios.put(`http://localhost:5000/api/reviews/${editingReviewId}`, {
+          rating: reviewRating,
+          comment: reviewComment
+        }, config);
+        alert('Review updated successfully!');
+      } else {
+        await axios.post('http://localhost:5000/api/reviews', {
+          sellerId: listing.seller._id,
+          listingId: id,
+          rating: reviewRating,
+          comment: reviewComment
+        }, config);
+        alert('Review submitted successfully!');
+      }
+      
+      const { data: reviewsData } = await axios.get(`http://localhost:5000/api/reviews/listing/${id}`);
       setReviews(reviewsData);
       setReviewComment('');
       setReviewRating(5);
+      setEditingReviewId(null);
     } catch (error) {
       console.error(error);
       alert(error.response?.data?.message || 'Error submitting review');
     } finally {
       setSubmitReviewLoading(false);
+    }
+  };
+
+  const startEditReview = (review) => {
+    setEditingReviewId(review._id);
+    setReviewRating(review.rating);
+    setReviewComment(review.comment);
+  };
+
+  const cancelEditReview = () => {
+    setEditingReviewId(null);
+    setReviewRating(5);
+    setReviewComment('');
+  };
+
+  const deleteReviewHandler = async (reviewId) => {
+    if (window.confirm('Are you sure you want to delete this review?')) {
+      try {
+        const config = { headers: { Authorization: `Bearer ${user.token}` } };
+        await axios.delete(`http://localhost:5000/api/reviews/${reviewId}`, config);
+        alert('Review deleted successfully');
+        const { data: reviewsData } = await axios.get(`http://localhost:5000/api/reviews/listing/${id}`);
+        setReviews(reviewsData);
+      } catch (error) {
+        console.error(error);
+        alert('Error deleting review');
+      }
     }
   };
 
@@ -186,8 +226,15 @@ const ListingDetails = () => {
             <img 
               src={currentImageUrl} 
               alt={listing.title} 
-              className="max-w-full max-h-96 object-contain"
+              className={`max-w-full max-h-96 object-contain ${listing.status === 'Sold' ? 'opacity-50 grayscale' : ''}`}
             />
+            {listing.status === 'Sold' && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <span className="bg-red-600 text-white px-6 py-2 rounded shadow-lg text-2xl font-bold uppercase tracking-widest transform -rotate-12 border-2 border-white">
+                  Sold Out
+                </span>
+              </div>
+            )}
             {hasImages && (
               <button 
                 onClick={() => setIsModalOpen(true)}
@@ -220,16 +267,16 @@ const ListingDetails = () => {
             {isEditing ? (
               <form onSubmit={updateHandler} className="space-y-4">
                 <div>
-                  <label className="block text-sm text-gray-600">Title</label>
-                  <input type="text" value={title} onChange={(e)=>setTitle(e.target.value)} className="w-full border p-2 rounded" />
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title</label>
+                  <input type="text" value={title} onChange={(e)=>setTitle(e.target.value)} className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600">Price ($)</label>
-                  <input type="number" value={price} onChange={(e)=>setPrice(e.target.value)} className="w-full border p-2 rounded" />
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Price ($)</label>
+                  <input type="number" value={price} onChange={(e)=>setPrice(e.target.value)} className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600">Category</label>
-                  <select value={category} onChange={(e)=>setCategory(e.target.value)} className="w-full border p-2 rounded">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
+                  <select value={category} onChange={(e)=>setCategory(e.target.value)} className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="Electronics">Electronics</option>
                     <option value="Books">Books</option>
                     <option value="Furniture">Furniture</option>
@@ -238,8 +285,8 @@ const ListingDetails = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600">Condition</label>
-                  <select value={condition} onChange={(e)=>setCondition(e.target.value)} className="w-full border p-2 rounded">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Condition</label>
+                  <select value={condition} onChange={(e)=>setCondition(e.target.value)} className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="New">New</option>
                     <option value="Like New">Like New</option>
                     <option value="Good">Good</option>
@@ -248,15 +295,16 @@ const ListingDetails = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600">Status</label>
-                  <select value={status} onChange={(e)=>setStatus(e.target.value)} className="w-full border p-2 rounded">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                  <select value={status} onChange={(e)=>setStatus(e.target.value)} className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="Available">Available</option>
+                    <option value="Reserved">Reserved</option>
                     <option value="Sold">Sold</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600">Description</label>
-                  <textarea rows="3" value={description} onChange={(e)=>setDescription(e.target.value)} className="w-full border p-2 rounded"></textarea>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                  <textarea rows="3" value={description} onChange={(e)=>setDescription(e.target.value)} className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
                 </div>
                 <div className="flex space-x-2 pt-2">
                   <button type="submit" className="flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700">Save Updates</button>
@@ -271,7 +319,13 @@ const ListingDetails = () => {
                 </div>
                 <p className="text-3xl font-bold text-gray-900 dark:text-white mb-4">${listing.price}</p>
                 <div className="mb-4">
-                  <span className={`text-xs font-medium px-2.5 py-0.5 rounded ${listing.status === 'Available' ? 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800/50' : 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800/50'}`}>
+                  <span className={`text-xs font-medium px-2.5 py-0.5 rounded border ${
+                    listing.status === 'Available' 
+                      ? 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800/50' 
+                      : listing.status === 'Reserved'
+                      ? 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800/50'
+                      : 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800/50'
+                  }`}>
                     Status: {listing.status}
                   </span>
                 </div>
@@ -287,7 +341,7 @@ const ListingDetails = () => {
                   <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Seller Info</h3>
                   <div className="flex justify-between items-center">
                     <div>
-                      <p className="text-gray-900 dark:text-white font-medium">{listing.seller?.name}</p>
+                      <Link to={`/seller/${listing.seller?._id}`} className="text-gray-900 dark:text-white font-medium hover:text-blue-600 dark:hover:text-blue-400 hover:underline">{listing.seller?.name}</Link>
                       <p className="text-gray-600 dark:text-gray-400">{listing.seller?.email}</p>
                     </div>
                     {listing.seller?.numReviews > 0 && (
@@ -318,25 +372,32 @@ const ListingDetails = () => {
                 
                 {user && !isOwner && (
                    <button 
-                     onClick={() => navigate(`/messages?user=${listing.seller?._id}&name=${encodeURIComponent(listing.seller?.name)}&listing=${listing._id}&title=${encodeURIComponent(listing.title)}`)}
-                     className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 font-medium transition-colors mt-4"
+                     onClick={() => listing.status !== 'Sold' && navigate(`/messages?user=${listing.seller?._id}&name=${encodeURIComponent(listing.seller?.name)}&listing=${listing._id}&title=${encodeURIComponent(listing.title)}`)}
+                     disabled={listing.status === 'Sold'}
+                     className={`w-full py-3 px-4 rounded-md font-medium transition-colors mt-4 ${
+                       listing.status === 'Sold' 
+                         ? 'bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 cursor-not-allowed' 
+                         : 'bg-blue-600 text-white hover:bg-blue-700'
+                     }`}
                    >
-                     Contact Seller
+                     {listing.status === 'Sold' ? 'Item Sold - Cannot Contact' : 'Contact Seller'}
                    </button>
                 )}
 
                 {user && !isOwner && (
                   <button 
                     onClick={toggleWishlist}
-                    disabled={wishlistLoading}
+                    disabled={wishlistLoading || listing.status === 'Sold'}
                     className={`w-full py-3 px-4 rounded-md font-medium transition-colors mt-3 flex justify-center items-center space-x-2 border ${
-                      isInWishlist 
+                      listing.status === 'Sold'
+                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-700 cursor-not-allowed'
+                        : isInWishlist 
                         ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800/50 hover:bg-red-100 dark:hover:bg-red-900/40' 
                         : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
                   >
-                    <Heart size={20} className={isInWishlist ? 'fill-current' : ''} />
-                    <span>{isInWishlist ? 'Remove from Wishlist' : 'Save to Wishlist'}</span>
+                    <Heart size={20} className={isInWishlist && listing.status !== 'Sold' ? 'fill-current' : ''} />
+                    <span>{listing.status === 'Sold' ? 'Unavailable' : (isInWishlist ? 'Remove from Wishlist' : 'Save to Wishlist')}</span>
                   </button>
                 )}
 
@@ -355,11 +416,13 @@ const ListingDetails = () => {
       </div>
 
       <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 border border-gray-200 dark:border-gray-700 transition-colors duration-200">
-        <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Seller Reviews</h3>
+        <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Listing Reviews</h3>
         
-        {user && user._id !== listing.seller?._id && !reviews.find(r => r.reviewer?._id === user._id) && (
+        {user && user._id !== listing.seller?._id && (
           <form onSubmit={submitReviewHandler} className="mb-8 p-4 bg-gray-50 dark:bg-gray-900 rounded-md border border-gray-100 dark:border-gray-700">
-            <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Leave a Review</h4>
+            <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+              {editingReviewId ? 'Edit Your Review' : 'Leave a Review'}
+            </h4>
             <div className="mb-4">
               <label className="block text-sm text-gray-700 dark:text-gray-300 mb-1">Rating</label>
               <select value={reviewRating} onChange={(e) => setReviewRating(e.target.value)} className="w-full border border-gray-300 dark:border-gray-600 p-2 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -374,26 +437,44 @@ const ListingDetails = () => {
               <label className="block text-sm text-gray-700 dark:text-gray-300 mb-1">Comment (Optional)</label>
               <textarea rows="3" value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} className="w-full border border-gray-300 dark:border-gray-600 p-2 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
             </div>
-            <button type="submit" disabled={submitReviewLoading} className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors">
-              {submitReviewLoading ? 'Submitting...' : 'Submit Review'}
-            </button>
+            <div className="flex space-x-2">
+              <button type="submit" disabled={submitReviewLoading} className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors">
+                {submitReviewLoading ? 'Submitting...' : (editingReviewId ? 'Update Review' : 'Submit Review')}
+              </button>
+              {editingReviewId && (
+                <button type="button" onClick={cancelEditReview} className="bg-gray-300 text-gray-800 py-2 px-4 rounded hover:bg-gray-400 transition-colors">
+                  Cancel
+                </button>
+              )}
+            </div>
           </form>
         )}
 
         {reviews.length === 0 ? (
-          <p className="text-gray-500 dark:text-gray-400">No reviews yet for this seller.</p>
+          <p className="text-gray-500 dark:text-gray-400">No reviews yet for this listing.</p>
         ) : (
           <div className="space-y-4">
             {reviews.map(review => (
-              <div key={review._id} className="border-b border-gray-100 dark:border-gray-700 pb-4 last:border-0">
+              <div key={review._id} className="border-b border-gray-100 dark:border-gray-700 pb-4 last:border-0 relative">
                 <div className="flex justify-between mb-1">
-                  <span className="font-medium text-gray-900 dark:text-white">{review.reviewer?.name}</span>
+                  <span className="font-medium text-gray-900 dark:text-white">
+                    {user && user._id === review.reviewer?._id ? 'Me' : (review.reviewer?.name || 'Anonymous User')}
+                  </span>
                   <span className="text-yellow-500 text-sm">★ {review.rating}</span>
                 </div>
                 <p className="text-gray-600 dark:text-gray-300 text-sm">{review.comment}</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">{new Date(review.createdAt).toLocaleDateString()}</p>
+                <div className="flex justify-between items-center mt-2">
+                  <p className="text-xs text-gray-400 dark:text-gray-500">{new Date(review.createdAt).toLocaleDateString()}</p>
+                  {user && user._id === review.reviewer?._id && !editingReviewId && (
+                    <div className="space-x-2">
+                      <button onClick={() => startEditReview(review)} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">Edit</button>
+                      <button onClick={() => deleteReviewHandler(review._id)} className="text-xs text-red-600 dark:text-red-400 hover:underline">Delete</button>
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
+
           </div>
         )}
       </div>

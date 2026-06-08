@@ -9,11 +9,12 @@ const Home = () => {
   const [listings, setListings] = useState([]);
   const [keyword, setKeyword] = useState('');
   const [category, setCategory] = useState('All');
+  const [statusFilter, setStatusFilter] = useState('Available');
   const { user } = useContext(AuthContext);
 
-  const fetchListings = async (searchKeyword = '', searchCategory = 'All') => {
+  const fetchListings = async (searchKeyword = '', searchCategory = 'All', searchStatus = 'Available') => {
     try {
-      const { data } = await axios.get(`http://localhost:5000/api/listings?keyword=${searchKeyword}&category=${searchCategory}`);
+      const { data } = await axios.get(`http://localhost:5000/api/listings?keyword=${searchKeyword}&category=${searchCategory}&status=${searchStatus}`);
       setListings(data);
     } catch (error) {
       console.error(error);
@@ -21,12 +22,12 @@ const Home = () => {
   };
 
   useEffect(() => {
-    fetchListings('', category);
-  }, [category]);
+    fetchListings('', category, statusFilter);
+  }, [category, statusFilter]);
 
   const submitHandler = (e) => {
     e.preventDefault();
-    fetchListings(keyword, category);
+    fetchListings(keyword, category, statusFilter);
   };
 
   return (
@@ -59,6 +60,17 @@ const Home = () => {
             <option value="Other">Other</option>
           </select>
           
+          <select 
+            value={statusFilter} 
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="border border-gray-300 dark:border-gray-700 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors"
+          >
+            <option value="All">All Statuses</option>
+            <option value="Available">Available</option>
+            <option value="Reserved">Reserved</option>
+            <option value="Sold">Sold</option>
+          </select>
+          
           <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
             Search
           </button>
@@ -73,12 +85,32 @@ const Home = () => {
       
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {listings.map((listing) => (
-          <div key={listing._id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden border border-gray-200 dark:border-gray-700 flex flex-col hover:shadow-lg dark:hover:shadow-blue-900/20 transition-all duration-200 group">
-            <img 
-              src={listing.images[0] ? `http://localhost:5000${listing.images[0]}` : 'https://via.placeholder.com/300x200?text=No+Image'} 
-              alt={listing.title} 
-              className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-            />
+          <div key={listing._id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden border border-gray-200 dark:border-gray-700 flex flex-col hover:shadow-lg dark:hover:shadow-blue-900/20 transition-all duration-200 group relative">
+            <div className="relative overflow-hidden h-48">
+              <img 
+                src={listing.images[0] ? `http://localhost:5000${listing.images[0]}` : 'https://via.placeholder.com/300x200?text=No+Image'} 
+                alt={listing.title} 
+                className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${listing.status === 'Sold' ? 'opacity-50 grayscale' : ''}`}
+              />
+              {listing.status === 'Sold' && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                  <span className="bg-red-600 text-white px-4 py-1 rounded shadow-md text-lg font-bold uppercase tracking-wider transform -rotate-12 border-2 border-white">
+                    Sold Out
+                  </span>
+                </div>
+              )}
+              {listing.status && listing.status !== 'Available' && (
+                <div className="absolute top-2 left-2 z-10">
+                  <span className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded shadow-sm ${
+                    listing.status === 'Reserved' 
+                      ? 'bg-yellow-500 text-white' 
+                      : 'bg-red-500 text-white'
+                  }`}>
+                    {listing.status}
+                  </span>
+                </div>
+              )}
+            </div>
             <div className="p-4 flex-grow flex flex-col justify-between">
               <div>
                 <div className="flex justify-between items-start">
