@@ -9,6 +9,12 @@ const AdminDashboard = () => {
   const [listings, setListings] = useState([]);
   const [reports, setReports] = useState([]);
   const [activeTab, setActiveTab] = useState('users'); // users, listings, reports
+  
+  // Moderation Modal State
+  const [isResolveModalOpen, setIsResolveModalOpen] = useState(false);
+  const [selectedReportId, setSelectedReportId] = useState(null);
+  const [actionTaken, setActionTaken] = useState('');
+  const [adminNotes, setAdminNotes] = useState('');
 
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -69,14 +75,32 @@ const AdminDashboard = () => {
     }
   };
 
-  const updateReportStatus = async (id, status) => {
+  const updateReportStatus = async (id, status, action = null, notes = null) => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.put(`http://localhost:5000/api/admin/reports/${id}`, { status }, config);
+      const { data } = await axios.put(`http://localhost:5000/api/admin/reports/${id}`, { 
+        status, 
+        actionTaken: action, 
+        adminNotes: notes 
+      }, config);
       setReports(reports.map(r => r._id === id ? data : r));
     } catch (error) {
       alert(error.response?.data?.message || 'Error updating report');
     }
+  };
+
+  const openResolveModal = (id) => {
+    setSelectedReportId(id);
+    setActionTaken('Dismiss Report');
+    setAdminNotes('');
+    setIsResolveModalOpen(true);
+  };
+
+  const submitResolution = async (e) => {
+    e.preventDefault();
+    await updateReportStatus(selectedReportId, 'resolved', actionTaken, adminNotes);
+    setIsResolveModalOpen(false);
+    setSelectedReportId(null);
   };
 
   return (
@@ -181,7 +205,7 @@ const AdminDashboard = () => {
                 <tr key={l._id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white truncate max-w-xs">{l.title}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{l.seller?.name || 'Unknown'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${l.price}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">Rs. {l.price}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full border ${l.status === 'Available' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800/50' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-600'}`}>
                       {l.status}
@@ -224,20 +248,41 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                   
-                  {r.status === 'pending' && (
-                    <div className="flex space-x-3">
+                  
+                  {r.status === 'pending' ? (
+                    <div className="flex space-x-3 mt-4 md:mt-0">
                       <button 
-                        onClick={() => updateReportStatus(r._id, 'resolved')}
-                        className="flex items-center px-3 py-1 border border-green-500 text-green-600 dark:text-green-400 dark:border-green-400 rounded hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors text-sm"
+                        onClick={() => openResolveModal(r._id)}
+                        className="flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm font-medium shadow-sm"
                       >
-                        <CheckCircle size={16} className="mr-1" /> Resolve
+                        <CheckCircle size={16} className="mr-1.5" /> Resolve Report
                       </button>
-                      <button 
-                        onClick={() => updateReportStatus(r._id, 'dismissed')}
-                        className="flex items-center px-3 py-1 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
-                      >
-                        Dismiss
-                      </button>
+                    </div>
+                  ) : (
+                    <div className="mt-4 bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border border-gray-100 dark:border-gray-700 w-full">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Action Taken</p>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white">{r.actionTaken || 'None'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Resolved On</p>
+                          <p className="text-sm text-gray-900 dark:text-white">
+                            {r.resolvedAt ? new Date(r.resolvedAt).toLocaleString() : 'N/A'}
+                          </p>
+                        </div>
+                      </div>
+                      {r.adminNotes && (
+                        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Admin Notes</p>
+                          <p className="text-sm text-gray-700 dark:text-gray-300 italic">{r.adminNotes}</p>
+                        </div>
+                      )}
+                      {r.resolvedBy && (
+                        <div className="mt-2 flex items-center justify-end">
+                          <span className="text-xs text-gray-400">Resolved by {r.resolvedBy.name}</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -246,6 +291,54 @@ const AdminDashboard = () => {
           </div>
         )}
       </div>
+
+      {/* Resolve Report Modal */}
+      {isResolveModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-xl max-w-lg w-full p-6 border border-gray-200 dark:border-gray-700 shadow-2xl">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Resolve Report</h3>
+            <form onSubmit={submitResolution}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Action to Take</label>
+                <select 
+                  value={actionTaken} 
+                  onChange={(e) => setActionTaken(e.target.value)}
+                  className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-md p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="Dismiss Report">Dismiss Report (No Action)</option>
+                  <option value="Warn User">Warn User</option>
+                  <option value="Remove Listing">Remove Listing</option>
+                  <option value="Suspend User">Suspend User (Temporary)</option>
+                  <option value="Ban User">Ban User (Permanent)</option>
+                </select>
+                
+                {actionTaken === 'Remove Listing' && <p className="text-xs text-red-500 mt-2">Warning: The reported listing will be removed.</p>}
+                {actionTaken === 'Suspend User' && <p className="text-xs text-red-500 mt-2">Warning: The user will not be able to log in.</p>}
+                {actionTaken === 'Ban User' && <p className="text-xs text-red-500 mt-2">Critical: The user will be banned and all their listings removed.</p>}
+              </div>
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Admin Notes (Internal)</label>
+                <textarea 
+                  required
+                  rows="4" 
+                  value={adminNotes} 
+                  onChange={(e) => setAdminNotes(e.target.value)}
+                  placeholder="Document why this action was taken..."
+                  className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                ></textarea>
+              </div>
+              <div className="flex space-x-3">
+                <button type="submit" className="flex-1 bg-blue-600 text-white py-2.5 rounded-md hover:bg-blue-700 font-medium transition-colors">
+                  Submit Resolution
+                </button>
+                <button type="button" onClick={() => setIsResolveModalOpen(false)} className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 py-2.5 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 font-medium transition-colors">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

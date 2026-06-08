@@ -9,6 +9,9 @@ const EditListing = () => {
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [condition, setCondition] = useState('');
+  const [isNegotiable, setIsNegotiable] = useState(false);
+  const [isUrgent, setIsUrgent] = useState(false);
+  const [deliveryOption, setDeliveryOption] = useState('Pickup Only');
   const [images, setImages] = useState([]);
   const [status, setStatus] = useState('Available');
   const [uploading, setUploading] = useState(false);
@@ -26,6 +29,9 @@ const EditListing = () => {
         setDescription(data.description);
         setCategory(data.category);
         setCondition(data.condition);
+        setIsNegotiable(data.isNegotiable || false);
+        setIsUrgent(data.isUrgent || false);
+        setDeliveryOption(data.deliveryOption || 'Pickup Only');
         setImages(data.images || []);
         setStatus(data.status);
       } catch (error) {
@@ -47,10 +53,7 @@ const EditListing = () => {
     setUploading(true);
 
     try {
-      const config = {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      };
-      const { data } = await axios.post('http://localhost:5000/api/upload', formData, config);
+      const { data } = await axios.post('http://localhost:5000/api/upload', formData);
       setImages(prev => [...prev, ...data]);
       setUploading(false);
     } catch (error) {
@@ -82,11 +85,14 @@ const EditListing = () => {
         description,
         category,
         condition,
+        isNegotiable,
+        isUrgent,
+        deliveryOption,
         images,
         status,
       }, config);
 
-      navigate(`/listing/${id}`);
+      navigate('/marketplace');
     } catch (error) {
       console.error(error);
       alert('Error updating listing');
@@ -103,7 +109,7 @@ const EditListing = () => {
             <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 transition-colors" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Price ($)</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Price (Rs.)</label>
             <input type="number" required value={price} onChange={(e) => setPrice(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 transition-colors" />
           </div>
           <div>
@@ -111,7 +117,6 @@ const EditListing = () => {
             <select value={category} onChange={(e) => setCategory(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 transition-colors">
               <option value="Electronics">Electronics</option>
               <option value="Books">Books</option>
-              <option value="Furniture">Furniture</option>
               <option value="Clothing">Clothing</option>
               <option value="Other">Other</option>
             </select>
@@ -119,12 +124,38 @@ const EditListing = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Condition</label>
             <select value={condition} onChange={(e) => setCondition(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 transition-colors">
-              <option value="New">New</option>
+              <option value="Brand New">Brand New</option>
               <option value="Like New">Like New</option>
+              <option value="Excellent">Excellent</option>
               <option value="Good">Good</option>
               <option value="Fair">Fair</option>
+              <option value="For Parts / Not Working">For Parts / Not Working</option>
+              <option value="New">New</option>
               <option value="Poor">Poor</option>
             </select>
+          </div>
+          <div className="flex items-center space-x-6">
+            <label className="flex items-center space-x-2">
+              <input type="checkbox" checked={isNegotiable} onChange={(e) => setIsNegotiable(e.target.checked)} className="rounded text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600" />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Negotiable Price</span>
+            </label>
+            <label className="flex items-center space-x-2">
+              <input type="checkbox" checked={isUrgent} onChange={(e) => setIsUrgent(e.target.checked)} className="rounded text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600" />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Urgent Sale</span>
+            </label>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Delivery Option</label>
+            <div className="flex space-x-4">
+              <label className="flex items-center space-x-2">
+                <input type="radio" value="Pickup Only" checked={deliveryOption === 'Pickup Only'} onChange={(e) => setDeliveryOption(e.target.value)} className="text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Pickup Only</span>
+              </label>
+              <label className="flex items-center space-x-2">
+                <input type="radio" value="Delivery Available" checked={deliveryOption === 'Delivery Available'} onChange={(e) => setDeliveryOption(e.target.value)} className="text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Delivery Available</span>
+              </label>
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>

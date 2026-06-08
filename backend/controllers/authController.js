@@ -15,6 +15,13 @@ export const authUser = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (user && (await user.matchPassword(password))) {
+      if (user.accountStatus === 'suspended') {
+        return res.status(403).json({ message: 'Your account has been temporarily suspended due to a policy violation.' });
+      }
+      if (user.accountStatus === 'banned') {
+        return res.status(403).json({ message: 'Your account has been permanently banned due to a severe policy violation.' });
+      }
+
       const token = generateToken(res, user._id, user.role);
       
       res.json({

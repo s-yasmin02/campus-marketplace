@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { ChevronLeft, ChevronRight, Maximize2, X, Heart } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Maximize2, X, Heart, Zap, Eye, Bookmark, Truck, MapPin } from 'lucide-react';
 
 const ListingDetails = () => {
   const [listing, setListing] = useState(null);
@@ -26,10 +26,18 @@ const ListingDetails = () => {
   const [category, setCategory] = useState('');
   const [condition, setCondition] = useState('');
   const [status, setStatus] = useState('');
+  const [images, setImages] = useState([]);
+  const [uploading, setUploading] = useState(false);
 
   const { id } = useParams();
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+    }
+  }, [user, navigate]);
 
   useEffect(() => {
     const fetchListingAndWishlist = async () => {
@@ -42,6 +50,7 @@ const ListingDetails = () => {
         setCategory(data.category);
         setCondition(data.condition);
         setStatus(data.status);
+        setImages(data.images || []);
 
         if (user) {
           const config = { headers: { Authorization: `Bearer ${user.token}` } };
@@ -90,7 +99,7 @@ const ListingDetails = () => {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
         await axios.delete(`http://localhost:5000/api/listings/${id}`, config);
-        navigate('/');
+        navigate('/marketplace');
       } catch (error) {
         console.error(error);
         alert('Error deleting listing');
@@ -116,12 +125,40 @@ const ListingDetails = () => {
     }
   };
 
+  const uploadFileHandler = async (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length + images.length > 5) {
+      alert('You can only upload up to 5 images.');
+      return;
+    }
+
+    const formData = new FormData();
+    files.forEach(file => {
+      formData.append('images', file);
+    });
+    setUploading(true);
+
+    try {
+      const { data } = await axios.post('http://localhost:5000/api/upload', formData);
+      setImages(prev => [...prev, ...data]);
+      setUploading(false);
+    } catch (error) {
+      console.error(error);
+      alert('Error uploading images');
+      setUploading(false);
+    }
+  };
+
+  const removeImage = (index) => {
+    setImages(images.filter((_, i) => i !== index));
+  };
+
   const updateHandler = async (e) => {
     e.preventDefault();
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       const { data } = await axios.put(`http://localhost:5000/api/listings/${id}`, {
-        title, price, description, category, condition, status
+        title, price, description, category, condition, status, images
       }, config);
       setListing(data);
       setIsEditing(false);
@@ -219,7 +256,7 @@ const ListingDetails = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 transition-colors duration-200">
-      <Link to="/" className="text-blue-600 dark:text-blue-400 hover:underline mb-6 inline-block">&larr; Back to Listings</Link>
+      <Link to="/marketplace" className="text-blue-600 dark:text-blue-400 hover:underline mb-6 inline-block">&larr; Back to Listings</Link>
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden border border-gray-200 dark:border-gray-700 transition-colors duration-200">
         <div className="md:flex">
           <div className="md:w-1/2 relative bg-black flex items-center justify-center min-h-[300px] group">
@@ -233,6 +270,11 @@ const ListingDetails = () => {
                 <span className="bg-red-600 text-white px-6 py-2 rounded shadow-lg text-2xl font-bold uppercase tracking-widest transform -rotate-12 border-2 border-white">
                   Sold Out
                 </span>
+              </div>
+            )}
+            {listing.isUrgent && listing.status === 'Available' && (
+              <div className="absolute top-4 left-4 z-10 flex items-center bg-red-600 text-white text-sm font-bold px-3 py-1.5 rounded shadow-lg">
+                <Zap size={16} className="mr-1 fill-current" /> Urgent Sale
               </div>
             )}
             {hasImages && (
@@ -271,7 +313,7 @@ const ListingDetails = () => {
                   <input type="text" value={title} onChange={(e)=>setTitle(e.target.value)} className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Price ($)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Price (Rs.)</label>
                   <input type="number" value={price} onChange={(e)=>setPrice(e.target.value)} className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div>
@@ -279,7 +321,6 @@ const ListingDetails = () => {
                   <select value={category} onChange={(e)=>setCategory(e.target.value)} className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="Electronics">Electronics</option>
                     <option value="Books">Books</option>
-                    <option value="Furniture">Furniture</option>
                     <option value="Clothing">Clothing</option>
                     <option value="Other">Other</option>
                   </select>
@@ -306,6 +347,21 @@ const ListingDetails = () => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
                   <textarea rows="3" value={description} onChange={(e)=>setDescription(e.target.value)} className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Images (Max 5)</label>
+                  <input type="file" id="image-file" multiple accept="image/*" onChange={uploadFileHandler} className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/30 file:text-blue-700 dark:file:text-blue-400 hover:file:bg-blue-100 dark:hover:file:bg-blue-900/50 mt-2 mb-2 transition-colors" />
+                  {uploading && <p className="text-sm text-blue-500 mt-1">Uploading...</p>}
+                  {images.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {images.map((img, index) => (
+                        <div key={index} className="relative group">
+                          <img src={`http://localhost:5000${img}`} alt="Preview" className="h-20 w-20 object-cover rounded border border-gray-200 dark:border-gray-700" />
+                          <button type="button" onClick={() => removeImage(index)} className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 text-xs w-5 h-5 flex items-center justify-center -mt-2 -mr-2 shadow">X</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <div className="flex space-x-2 pt-2">
                   <button type="submit" className="flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700">Save Updates</button>
                   <button type="button" onClick={()=>setIsEditing(false)} className="flex-1 bg-gray-300 text-gray-800 py-2 rounded hover:bg-gray-400">Cancel</button>
@@ -317,7 +373,15 @@ const ListingDetails = () => {
                   <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{listing.title}</h2>
                   <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 text-sm font-medium px-2.5 py-0.5 rounded border border-blue-200 dark:border-blue-800/50">{listing.category}</span>
                 </div>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white mb-4">${listing.price}</p>
+                <div className="flex items-baseline gap-2 mb-4">
+                  <p className="text-3xl font-bold text-gray-900 dark:text-white">Rs. {listing.price}</p>
+                  {listing.isNegotiable && <span className="text-sm font-medium text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">(Or Best Offer)</span>}
+                </div>
+                
+                <div className="flex items-center gap-4 mb-4 text-sm text-gray-500 dark:text-gray-400">
+                  <div className="flex items-center gap-1" title="Views"><Eye size={16} /> {listing.views || 0} views</div>
+                  <div className="flex items-center gap-1" title="Saves"><Bookmark size={16} /> {listing.savedCount || 0} saves</div>
+                </div>
                 <div className="mb-4">
                   <span className={`text-xs font-medium px-2.5 py-0.5 rounded border ${
                     listing.status === 'Available' 
@@ -329,9 +393,18 @@ const ListingDetails = () => {
                     Status: {listing.status}
                   </span>
                 </div>
-                <div className="mb-4">
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Condition</h3>
-                  <p className="mt-1 text-gray-900 dark:text-gray-200">{listing.condition}</p>
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Condition</h3>
+                    <p className="mt-1 text-gray-900 dark:text-gray-200">{listing.condition}</p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Delivery</h3>
+                    <div className="mt-1 flex items-center text-gray-900 dark:text-gray-200">
+                      {listing.deliveryOption === 'Delivery Available' ? <Truck size={16} className="mr-1 text-blue-500" /> : <MapPin size={16} className="mr-1 text-gray-500" />}
+                      {listing.deliveryOption || 'Pickup Only'}
+                    </div>
+                  </div>
                 </div>
                 <div className="mb-6">
                   <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Description</h3>

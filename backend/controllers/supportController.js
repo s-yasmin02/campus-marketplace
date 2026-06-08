@@ -26,3 +26,16 @@ export const createTicket = async (req, res) => {
     res.status(500).json({ message: 'Server error while creating ticket' });
   }
 };
+
+// @desc    Get user support tickets
+// @route   GET /api/support
+// @access  Private
+export const getMyTickets = async (req, res) => {
+  try {
+    const tickets = await SupportTicket.find({ user: req.user._id }).sort({ createdAt: -1 });
+    res.json(tickets);
+  } catch (error) {
+    console.error('Error fetching support tickets:', error);
+    res.status(500).json({ message: 'Server error while fetching tickets' });
+  }
+};

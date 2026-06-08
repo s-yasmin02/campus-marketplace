@@ -1,9 +1,11 @@
 import express from 'express';
-import { createTicket } from '../controllers/supportController.js';
+import { createTicket, getMyTickets } from '../controllers/supportController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.post('/', protect, createTicket);
+router.route('/')
+  .post(protect, createTicket)
+  .get(protect, getMyTickets);
 
 export default router;

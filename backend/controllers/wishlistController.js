@@ -1,4 +1,5 @@
 import Wishlist from '../models/Wishlist.js';
+import Listing from '../models/Listing.js';
 
 // @desc    Get user wishlist
 // @route   GET /api/wishlist
@@ -31,10 +32,14 @@ export const addToWishlist = async (req, res) => {
 
     if (!wishlist) {
       wishlist = await Wishlist.create({ user: req.user._id, listings: [listingId] });
+      await Listing.findByIdAndUpdate(listingId, { $inc: { savedCount: 1 } });
     } else {
       if (!wishlist.listings.includes(listingId)) {
         wishlist.listings.push(listingId);
         await wishlist.save();
+        
+        // Increment listing savedCount
+        await Listing.findByIdAndUpdate(listingId, { $inc: { savedCount: 1 } });
       }
     }
 
@@ -52,10 +57,15 @@ export const removeFromWishlist = async (req, res) => {
     const wishlist = await Wishlist.findOne({ user: req.user._id });
 
     if (wishlist) {
+      const wasIncluded = wishlist.listings.some(id => id.toString() === req.params.listingId.toString());
       wishlist.listings = wishlist.listings.filter(
         (id) => id.toString() !== req.params.listingId.toString()
       );
       await wishlist.save();
+
+      if (wasIncluded) {
+        await Listing.findByIdAndUpdate(req.params.listingId, { $inc: { savedCount: -1 } });
+      }
       res.json(wishlist);
     } else {
       res.status(404).json({ message: 'Wishlist not found' });

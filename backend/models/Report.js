@@ -23,6 +23,20 @@ const reportSchema = new mongoose.Schema({
     enum: ['pending', 'resolved', 'dismissed'],
     default: 'pending',
   },
+  actionTaken: {
+    type: String,
+    enum: ['Dismiss Report', 'Warn User', 'Remove Listing', 'Suspend User', 'Ban User'],
+  },
+  adminNotes: {
+    type: String,
+  },
+  resolvedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
+  resolvedAt: {
+    type: Date,
+  },
 }, {
   timestamps: true,
 });

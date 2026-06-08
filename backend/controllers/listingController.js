@@ -24,11 +24,51 @@ export const getListings = async (req, res) => {
       delete statusFilter.status;
     }
 
-    const listings = await Listing.find({ 
+    const conditionFilter = req.query.condition && req.query.condition !== 'All'
+      ? { condition: req.query.condition }
+      : {};
+
+    const minPrice = req.query.minPrice ? Number(req.query.minPrice) : null;
+    const maxPrice = req.query.maxPrice ? Number(req.query.maxPrice) : null;
+    const priceFilter = {};
+    if (minPrice !== null && !isNaN(minPrice)) priceFilter.$gte = minPrice;
+    if (maxPrice !== null && !isNaN(maxPrice)) priceFilter.$lte = maxPrice;
+    const priceQuery = Object.keys(priceFilter).length > 0 ? { price: priceFilter } : {};
+
+    const query = { 
       ...keyword,
       ...category,
-      ...statusFilter
-    }).populate('seller', 'name email rating numReviews');
+      ...statusFilter,
+      ...conditionFilter,
+      ...priceQuery
+    };
+
+    let sortOptions = { createdAt: -1 }; // Default: Newest First
+    if (req.query.sort) {
+      switch (req.query.sort) {
+        case 'oldest':
+          sortOptions = { createdAt: 1 };
+          break;
+        case 'price_low_high':
+          sortOptions = { price: 1 };
+          break;
+        case 'price_high_low':
+          sortOptions = { price: -1 };
+          break;
+        case 'most_viewed':
+          sortOptions = { views: -1 };
+          break;
+        case 'most_wishlisted':
+          sortOptions = { savedCount: -1 };
+          break;
+        default:
+          sortOptions = { createdAt: -1 };
+      }
+    }
+
+    const listings = await Listing.find(query)
+      .populate('seller', 'name email rating numReviews')
+      .sort(sortOptions);
     
     res.json(listings);
   } catch (error) {
@@ -56,6 +96,8 @@ export const getListingById = async (req, res) => {
     const listing = await Listing.findById(req.params.id).populate('seller', 'name email rating numReviews');
     
     if (listing) {
+      listing.views += 1;
+      await listing.save();
       res.json(listing);
     } else {
       res.status(404).json({ message: 'Listing not found' });
@@ -69,7 +111,7 @@ export const getListingById = async (req, res) => {
 // @route   POST /api/listings
 // @access  Private
 export const createListing = async (req, res) => {
-  const { title, description, price, category, condition, images } = req.body;
+  const { title, description, price, category, condition, images, isNegotiable, isUrgent, deliveryOption } = req.body;
 
   try {
     const listing = new Listing({
@@ -79,6 +121,9 @@ export const createListing = async (req, res) => {
       category,
       condition,
       images: images || [],
+      isNegotiable: isNegotiable || false,
+      isUrgent: isUrgent || false,
+      deliveryOption: deliveryOption || 'Pickup Only',
       seller: req.user._id,
     });
 
@@ -128,7 +173,7 @@ export const createListing = async (req, res) => {
 // @route   PUT /api/listings/:id
 // @access  Private
 export const updateListing = async (req, res) => {
-  const { title, description, price, category, condition, images, status } = req.body;
+  const { title, description, price, category, condition, images, status, isNegotiable, isUrgent, deliveryOption } = req.body;
 
   try {
     const listing = await Listing.findById(req.params.id);
@@ -146,6 +191,9 @@ export const updateListing = async (req, res) => {
       listing.condition = condition || listing.condition;
       listing.images = images || listing.images;
       listing.status = status || listing.status;
+      if (isNegotiable !== undefined) listing.isNegotiable = isNegotiable;
+      if (isUrgent !== undefined) listing.isUrgent = isUrgent;
+      if (deliveryOption !== undefined) listing.deliveryOption = deliveryOption;
 
       const updatedListing = await listing.save();
       res.json(updatedListing);

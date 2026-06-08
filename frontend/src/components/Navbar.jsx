@@ -66,8 +66,14 @@ const Navbar = () => {
         setNotifications((prev) => [notification, ...prev]);
       });
 
+      const handleMessagesReadEvent = () => {
+        fetchUnread();
+      };
+      window.addEventListener('messages_read', handleMessagesReadEvent);
+
       return () => {
         if (socket) socket.disconnect();
+        window.removeEventListener('messages_read', handleMessagesReadEvent);
       };
     }
   }, [user]);
@@ -104,7 +110,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-100 dark:border-gray-800 transition-colors duration-200">
+    <nav className="bg-white dark:bg-slate-950 shadow-sm border-b border-gray-100 dark:border-white/[0.08] transition-colors duration-200 relative z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
@@ -130,6 +136,9 @@ const Navbar = () => {
                   </Link>
                 ) : (
                   <>
+                    <Link to="/marketplace" className="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 rounded-md text-sm font-medium transition-colors hidden sm:block">
+                      Marketplace
+                    </Link>
                     <Link to="/messages" className="relative text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center group">
                       <MessageCircle className="h-5 w-5 mr-1.5 text-gray-400 dark:text-gray-500 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors" />
                       <span>Messages</span>
@@ -196,9 +205,15 @@ const Navbar = () => {
                                         {!notif.read && <div className="absolute top-0 -left-1 w-2.5 h-2.5 bg-blue-500 rounded-full border border-white dark:border-gray-800"></div>}
                                       </div>
                                       <div className="flex-grow">
-                                        <p className="text-sm text-gray-800 dark:text-gray-200 line-clamp-2">
-                                          <span className="font-semibold">{notif.sender?.name}</span> posted a new listing: <span className="font-medium text-gray-900 dark:text-white">{notif.listing?.title}</span>
-                                        </p>
+                                        {notif.type === 'moderation' ? (
+                                          <p className="text-sm text-gray-800 dark:text-gray-200 line-clamp-2">
+                                            <span className="font-semibold text-red-600">Admin Action:</span> {notif.message}
+                                          </p>
+                                        ) : (
+                                          <p className="text-sm text-gray-800 dark:text-gray-200 line-clamp-2">
+                                            <span className="font-semibold">{notif.sender?.name}</span> posted a new listing: <span className="font-medium text-gray-900 dark:text-white">{notif.listing?.title}</span>
+                                          </p>
+                                        )}
                                         <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-medium">
                                           {new Date(notif.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })}
                                         </p>
@@ -323,13 +338,13 @@ const Navbar = () => {
               <>
                 <Link
                   to="/login"
-                  className="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                  className="text-gray-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
                 >
-                  Login
+                  Sign in
                 </Link>
                 <Link
                   to="/register"
-                  className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm"
+                  className="group relative inline-flex justify-center items-center py-2 px-4 text-sm font-medium rounded-lg text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500/50 dark:focus:ring-offset-slate-950 active:scale-[0.98] transition-all duration-200 shadow-lg shadow-blue-900/20"
                 >
                   Register
                 </Link>

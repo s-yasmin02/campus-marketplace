@@ -25,14 +25,35 @@ const listingSchema = new mongoose.Schema({
   condition: {
     type: String,
     required: true,
-    enum: ['New', 'Like New', 'Good', 'Fair', 'Poor'],
+    enum: ['Brand New', 'Like New', 'Excellent', 'Good', 'Fair', 'For Parts / Not Working', 'New', 'Poor'], // Keeping 'New' and 'Poor' for backward compatibility
+  },
+  isNegotiable: {
+    type: Boolean,
+    default: false,
+  },
+  isUrgent: {
+    type: Boolean,
+    default: false,
+  },
+  views: {
+    type: Number,
+    default: 0,
+  },
+  savedCount: {
+    type: Number,
+    default: 0,
+  },
+  deliveryOption: {
+    type: String,
+    enum: ['Pickup Only', 'Delivery Available'],
+    default: 'Pickup Only',
   },
   images: [{
     type: String, // URLs to images
   }],
   status: {
     type: String,
-    enum: ['Available', 'Reserved', 'Sold'],
+    enum: ['Available', 'Reserved', 'Sold', 'Removed'],
     default: 'Available',
   },
 }, {

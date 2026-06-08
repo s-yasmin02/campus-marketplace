@@ -236,7 +236,7 @@ const SellerProfile = () => {
                         <div className="w-full h-full flex items-center justify-center text-gray-400">No Image</div>
                       )}
                       <div className="absolute top-3 right-3 bg-white/90 dark:bg-gray-900/90 backdrop-blur px-3 py-1 rounded-full text-sm font-semibold text-gray-900 dark:text-white shadow-sm">
-                        ${listing.price}
+                        Rs. {listing.price}
                       </div>
                     </div>
                     <div className="p-5">

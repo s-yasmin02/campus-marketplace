@@ -2,7 +2,8 @@ import React, { useEffect, useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import Navbar from './components/Navbar';
-import Home from './pages/Home';
+import Landing from './pages/Landing';
+import Marketplace from './pages/Marketplace';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
@@ -36,7 +37,8 @@ function App() {
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200">
           <Navbar />
           <Routes>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<Landing />} />
+            <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/profile" element={<Profile />} />
@@ -47,6 +49,7 @@ function App() {
             <Route path="/messages" element={<Messages />} />
             <Route path="/settings/chat" element={<ChatSettings />} />
             <Route path="/messages/:userId/:listingId" element={<Messages />} />
+            <Route path="/support" element={<SupportTicket />} />
             <Route path="/listing/:id" element={<ListingDetails />} />
             <Route path="/listing/:id/edit" element={<EditListing />} />
             <Route path="/seller/:id" element={<SellerProfile />} />

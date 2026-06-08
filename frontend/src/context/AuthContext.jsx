@@ -38,8 +38,18 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('userInfo');
   };
 
+  const updateUser = (data) => {
+    // Preserve token if not returned by profile update
+    const updatedUser = { ...user, ...data };
+    if (!data.token && user && user.token) {
+      updatedUser.token = user.token;
+    }
+    setUser(updatedUser);
+    localStorage.setItem('userInfo', JSON.stringify(updatedUser));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout }}>
+    <AuthContext.Provider value={{ user, login, register, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

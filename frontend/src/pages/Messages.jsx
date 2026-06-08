@@ -29,7 +29,7 @@ const Messages = () => {
   const sidebarMenuRef = useRef(null);
   const chatMenuRef = useRef(null);
 
-  const { user, login } = useContext(AuthContext);
+  const { user, updateUser } = useContext(AuthContext);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const messagesEndRef = useRef(null);
@@ -58,7 +58,9 @@ const Messages = () => {
           // We received a message while in chat, so mark it as read immediately
           socket.emit('mark_as_read', { receiverId: messageReceived.sender._id, senderId: user._id });
           // And update DB (optional if the controller is hit on re-fetch, but let's do a quick patch)
-          axios.get(`${ENDPOINT}/api/messages/${messageReceived.sender._id}`, { headers: { Authorization: `Bearer ${user.token}` } }).catch(console.error);
+          axios.get(`${ENDPOINT}/api/messages/${messageReceived.sender._id}`, { headers: { Authorization: `Bearer ${user.token}` } }).then(() => {
+            window.dispatchEvent(new Event('messages_read'));
+          }).catch(console.error);
         }
         fetchConversations();
         return currentChat;
@@ -163,6 +165,7 @@ const Messages = () => {
       const { data } = await axios.get(url, config);
       setMessages(data);
       fetchConversations(); // Update unread counts
+      window.dispatchEvent(new Event('messages_read'));
     } catch (error) {
       console.error(error);
     }
@@ -221,10 +224,11 @@ const Messages = () => {
   const handleArchiveChat = async () => {
     if (!activeChat) return;
     try {
+      const currentConversation = conversations.find(c => c.otherUser._id === activeChat.otherUser._id);
+      const isArchived = currentConversation?.isArchived || false;
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.put(`${ENDPOINT}/api/messages/meta/${activeChat.otherUser._id}`, { isArchived: true }, config);
+      await axios.put(`${ENDPOINT}/api/messages/meta/${activeChat.otherUser._id}`, { isArchived: !isArchived }, config);
       setShowChatMenu(false);
-      setActiveChat(null);
       fetchConversations();
     } catch (error) {
       console.error('Error archiving chat:', error);
@@ -253,11 +257,11 @@ const Messages = () => {
       if (isBlocked) {
         const { data } = await axios.post(`${ENDPOINT}/api/auth/unblock/${activeChat.otherUser._id}`, {}, config);
         setBlockedUserIds(data.blockedUsers);
-        login({ ...user, blockedUsers: data.blockedUsers });
+        updateUser({ blockedUsers: data.blockedUsers });
       } else {
         const { data } = await axios.post(`${ENDPOINT}/api/auth/block/${activeChat.otherUser._id}`, {}, config);
         setBlockedUserIds(data.blockedUsers);
-        login({ ...user, blockedUsers: data.blockedUsers });
+        updateUser({ blockedUsers: data.blockedUsers });
       }
       setShowChatMenu(false);
     } catch (error) {
@@ -460,7 +464,7 @@ const Messages = () => {
                       </button>
                       <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
                       <button onClick={handleArchiveChat} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
-                        Archive Chat
+                        {conversations.find(c => c.otherUser._id === activeChat.otherUser._id)?.isArchived ? 'Unarchive Chat' : 'Archive Chat'}
                       </button>
                       <button onClick={handleDeleteChat} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
                         Delete Chat

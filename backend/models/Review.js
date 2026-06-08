@@ -30,8 +30,7 @@ const reviewSchema = new mongoose.Schema({
   timestamps: true,
 });
 
-// Prevent duplicate reviews from the same buyer for a specific seller
-reviewSchema.index({ reviewer: 1, seller: 1 }, { unique: true });
+// Index removed to allow multiple reviews per listing/seller
 
 const Review = mongoose.model('Review', reviewSchema);
 

@@ -14,7 +14,14 @@ const notificationSchema = new mongoose.Schema({
   listing: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Listing', 
-    required: true 
+  },
+  type: {
+    type: String,
+    enum: ['new_listing', 'moderation', 'general'],
+    default: 'new_listing'
+  },
+  message: {
+    type: String,
   },
   read: { 
     type: Boolean, 

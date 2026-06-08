@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 const Settings = () => {
-  const { user, login, logout } = useContext(AuthContext);
+  const { user, login, logout, updateUser } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState('Account');
 
   // Account Form State
@@ -242,7 +242,7 @@ const Settings = () => {
       const { data } = await axios.put('http://localhost:5000/api/auth/profile', profileData, config);
       
       // Update AuthContext
-      login(data);
+      updateUser(data);
       alert('Profile updated successfully!');
     } catch (error) {
       console.error('Error saving profile', error);

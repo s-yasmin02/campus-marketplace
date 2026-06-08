@@ -18,8 +18,8 @@ const supportTicketSchema = mongoose.Schema(
     type: {
       type: String,
       required: true,
-      enum: ['support', 'bug'],
-      default: 'support',
+      enum: ['Bug Report', 'Technical Issue', 'Account Issue', 'Feedback', 'Other', 'support', 'bug'],
+      default: 'Other',
     },
     status: {
       type: String,

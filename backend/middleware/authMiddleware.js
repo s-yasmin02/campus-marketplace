@@ -13,6 +13,11 @@ export const protect = async (req, res, next) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       
       req.user = await User.findById(decoded.userId).select('-password');
+      
+      if (req.user && (req.user.accountStatus === 'suspended' || req.user.accountStatus === 'banned')) {
+        return res.status(403).json({ message: 'Your account has been suspended or banned.' });
+      }
+
       next();
     } catch (error) {
       res.status(401).json({ message: 'Not authorized, token failed' });

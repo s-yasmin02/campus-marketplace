@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import Listing from '../models/Listing.js';
 import Report from '../models/Report.js';
+import Notification from '../models/Notification.js';
 
 // @desc    Get all users
 // @route   GET /api/admin/users
@@ -90,16 +91,75 @@ export const getReports = async (req, res) => {
 // @access  Private/Admin
 export const updateReportStatus = async (req, res) => {
   try {
-    const { status } = req.body;
-    const report = await Report.findById(req.params.id);
+    const { status, actionTaken, adminNotes } = req.body;
+    const report = await Report.findById(req.params.id)
+      .populate('reportedUser')
+      .populate('reportedListing');
     
-    if (report) {
-      report.status = status || report.status;
-      const updatedReport = await report.save();
-      res.json(updatedReport);
-    } else {
-      res.status(404).json({ message: 'Report not found' });
+    if (!report) {
+      return res.status(404).json({ message: 'Report not found' });
     }
+
+    report.status = status || report.status;
+    
+    if (status === 'resolved' || status === 'dismissed') {
+      report.actionTaken = actionTaken;
+      report.adminNotes = adminNotes;
+      report.resolvedBy = req.user._id;
+      report.resolvedAt = Date.now();
+      
+      const targetUser = report.reportedUser;
+      const targetListing = report.reportedListing;
+      
+      if (actionTaken === 'Warn User' && targetUser) {
+        await Notification.create({
+          recipient: targetUser._id,
+          sender: req.user._id,
+          type: 'moderation',
+          message: `Warning: You have been reported for a policy violation. Please review our guidelines.`
+        });
+      } else if (actionTaken === 'Remove Listing' && targetListing) {
+        targetListing.status = 'Removed';
+        await targetListing.save();
+        if (targetUser) {
+          await Notification.create({
+            recipient: targetUser._id,
+            sender: req.user._id,
+            type: 'moderation',
+            message: `Your listing "${targetListing.title}" was removed due to a policy violation.`
+          });
+        }
+      } else if (actionTaken === 'Suspend User' && targetUser) {
+        targetUser.accountStatus = 'suspended';
+        await targetUser.save();
+        await Notification.create({
+          recipient: targetUser._id,
+          sender: req.user._id,
+          type: 'moderation',
+          message: `Your account has been temporarily suspended due to a policy violation.`
+        });
+      } else if (actionTaken === 'Ban User' && targetUser) {
+        targetUser.accountStatus = 'banned';
+        await targetUser.save();
+        await Listing.updateMany({ seller: targetUser._id }, { status: 'Removed' });
+        await Notification.create({
+          recipient: targetUser._id,
+          sender: req.user._id,
+          type: 'moderation',
+          message: `Your account has been permanently banned due to a severe policy violation.`
+        });
+      }
+    }
+
+    const updatedReport = await report.save();
+    
+    const populatedReport = await Report.findById(updatedReport._id)
+      .populate('reporter', 'name email')
+      .populate('reportedListing', 'title status')
+      .populate('reportedUser', 'name email')
+      .populate('resolvedBy', 'name');
+      
+    res.json(populatedReport);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

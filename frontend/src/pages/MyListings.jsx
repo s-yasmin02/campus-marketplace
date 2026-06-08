@@ -87,7 +87,7 @@ const MyListings = () => {
                     <option value="Sold">Sold</option>
                   </select>
                 </div>
-                <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white">${listing.price}</p>
+                <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white">Rs. {listing.price}</p>
                 <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">{listing.description}</p>
               </div>
               <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-between transition-colors duration-200">

@@ -72,7 +72,7 @@ const Wishlist = () => {
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate pr-2">{listing.title}</h3>
                   <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50 text-xs font-medium px-2.5 py-0.5 rounded">{listing.category}</span>
                 </div>
-                <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white">${listing.price}</p>
+                <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white">Rs. {listing.price}</p>
                 <div className="mt-2 text-sm">
                   <span className={`font-medium px-2 py-0.5 rounded border ${listing.status === 'Available' ? 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800/50' : 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800/50'}`}>
                     {listing.status}
