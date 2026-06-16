@@ -292,3 +292,38 @@ export const unblockUser = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// @desc    Check if email exists
+// @route   POST /api/auth/check-email
+// @access  Public
+export const checkEmail = async (req, res) => {
+  try {
+    const user = await User.findOne({ email: req.body.email });
+    if (user) {
+      res.json({ message: 'Email exists' });
+    } else {
+      res.status(404).json({ message: 'User with this email not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Reset password
+// @route   POST /api/auth/reset-password
+// @access  Public
+export const resetPassword = async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (user) {
+      user.password = password;
+      await user.save();
+      res.json({ message: 'Password reset successfully' });
+    } else {
+      res.status(404).json({ message: 'User not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
